@@ -186,17 +186,30 @@ const initDatabase = async () => {
     `);
     console.log('✅ Tabulka invoices vytvořena');
 
+    // Vytvoření tabulky pro reset hesla tokeny
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        token VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✅ Tabulka password_resets vytvořena');
+
     // Vytvoření prvního admin uživatele s dočasným heslem
     const initialPassword = 'Nevymyslis2025!';
     const hashedPassword = await bcrypt.hash(initialPassword, 10);
     await pool.query(`
       INSERT INTO users (name, email, password_hash, role, position, force_password_change)
       VALUES 
-        ('Admin', 'admin@nevymyslis.cz', $1, 'manager', 'Administrátor', TRUE)
+        ('Admin', 'info@nevymyslis.cz', $1, 'manager', 'Administrátor', TRUE)
       ON CONFLICT (email) DO NOTHING;
     `, [hashedPassword]);
     console.log('✅ Admin uživatel vytvořen');
-    console.log('📧 Email: admin@nevymyslis.cz');
+    console.log('📧 Email: info@nevymyslis.cz');
     console.log('🔑 Heslo: ' + initialPassword);
     console.log('⚠️  Heslo bude nutné změnit při prvním přihlášení!');
 

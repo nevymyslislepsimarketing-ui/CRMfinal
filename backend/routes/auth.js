@@ -1,7 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/database');
+const { sendPasswordResetEmail, sendWelcomeEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -51,15 +53,25 @@ router.post('/register', async (req, res) => {
     console.log('✅ Uživatel vytvořen:', user.id);
     console.log('⚠️  Uživatel bude muset změnit heslo při prvním přihlášení');
 
+    // Odeslat uvítací email s přihlašovacími údaji
+    const emailResult = await sendWelcomeEmail(user, password);
+    
+    if (emailResult.success) {
+      console.log('✅ Uvítací email odeslán na:', user.email);
+    } else {
+      console.error('⚠️  Email se nepodařilo odeslat:', emailResult.error);
+    }
+
     res.status(201).json({
-      message: 'Uživatel úspěšně vytvořen. První přihlášení vyžaduje změnu hesla.',
+      message: 'Uživatel úspěšně vytvořen. Přihlašovací údaje byly odeslány na email.',
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
-        initialPassword: password // Heslo které admin zadal
-      }
+        initialPassword: emailResult.success ? undefined : password // Zobrazit heslo pouze pokud email selhal
+      },
+      emailSent: emailResult.success
     });
   } catch (error) {
     console.error('❌ Chyba při registraci:', error.message);
@@ -283,6 +295,132 @@ router.get('/me', async (req, res) => {
   } catch (error) {
     console.error('Chyba při získávání uživatele:', error);
     res.status(401).json({ error: 'Neplatný token' });
+  }
+});
+
+// Žádost o reset hesla
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    console.log('🔑 Žádost o reset hesla:', email);
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email je povinný' });
+    }
+
+    // Najít uživatele
+    const userResult = await pool.query(
+      'SELECT id, name, email FROM users WHERE email = $1',
+      [email]
+    );
+
+    // Z bezpečnostních důvodů vracíme stejnou zprávu i když uživatel neexistuje
+    if (userResult.rows.length === 0) {
+      console.log('⚠️  Uživatel nenalezen, ale vracíme success');
+      return res.json({
+        message: 'Pokud email existuje v systému, byl odeslán odkaz pro reset hesla.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // Generovat unikátní token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hodina
+
+    // Uložit token do databáze
+    await pool.query(
+      'INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [user.id, resetToken, expiresAt]
+    );
+
+    console.log('✅ Reset token vytvořen');
+
+    // Odeslat email s reset odkazem
+    const emailResult = await sendPasswordResetEmail(user, resetToken);
+    
+    if (emailResult.success) {
+      console.log('✅ Reset email odeslán na:', user.email);
+    } else {
+      console.error('⚠️  Email se nepodařilo odeslat:', emailResult.error);
+      
+      // V případě chyby emailu v development režimu vrátit URL
+      if (process.env.NODE_ENV === 'development') {
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+        return res.json({
+          message: 'SMTP není nakonfigurováno - reset odkaz:',
+          resetUrl,
+          warning: 'Email nebyl odeslán. Nastavte SMTP v .env souboru.'
+        });
+      }
+    }
+
+    // Vždy vrátit stejnou zprávu z bezpečnostních důvodů
+    res.json({
+      message: 'Pokud email existuje v systému, byl odeslán odkaz pro reset hesla.'
+    });
+  } catch (error) {
+    console.error('❌ Chyba při generování reset tokenu:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Reset hesla pomocí tokenu
+router.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    console.log('🔐 Pokus o reset hesla s tokenem');
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token a nové heslo jsou povinné' });
+    }
+
+    // Validace hesla
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Heslo musí mít alespoň 8 znaků' });
+    }
+
+    // Najít platný token
+    const tokenResult = await pool.query(
+      `SELECT pr.*, u.id as user_id, u.email 
+       FROM password_resets pr
+       JOIN users u ON pr.user_id = u.id
+       WHERE pr.token = $1 AND pr.used = FALSE AND pr.expires_at > NOW()`,
+      [token]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      console.log('❌ Token neplatný nebo expirovaný');
+      return res.status(400).json({ error: 'Neplatný nebo expirovaný token' });
+    }
+
+    const resetRecord = tokenResult.rows[0];
+
+    // Hashovat nové heslo
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Aktualizovat heslo a zrušit force_password_change
+    await pool.query(
+      'UPDATE users SET password_hash = $1, force_password_change = FALSE, updated_at = NOW() WHERE id = $2',
+      [hashedPassword, resetRecord.user_id]
+    );
+
+    // Označit token jako použitý
+    await pool.query(
+      'UPDATE password_resets SET used = TRUE WHERE id = $1',
+      [resetRecord.id]
+    );
+
+    console.log('✅ Heslo úspěšně resetováno pro:', resetRecord.email);
+
+    res.json({
+      message: 'Heslo bylo úspěšně změněno. Nyní se můžete přihlásit.'
+    });
+  } catch (error) {
+    console.error('❌ Chyba při resetu hesla:', error);
+    res.status(500).json({ error: 'Chyba serveru při resetu hesla' });
   }
 });
 

@@ -19,6 +19,7 @@ Kompletní CRM systém pro marketingovou firmu Nevymyslíš. Umožňuje správu 
 - **PostgreSQL** - Databáze
 - **JWT** - Autentizace
 - **bcryptjs** - Hashování hesel
+- **Nodemailer** - Email odesílání (SMTP)
 
 ### Frontend
 - **React 18** - UI framework
@@ -30,10 +31,12 @@ Kompletní CRM systém pro marketingovou firmu Nevymyslíš. Umožňuje správu 
 
 ## ✨ Funkce
 
-### Autentizace
-- ✅ Registrace a přihlášení uživatelů
+### Autentizace & Bezpečnost
 - ✅ JWT autentizace s automatickou kontrolou validity
 - ✅ Bcrypt hashování hesel
+- ✅ **Force password change** při prvním přihlášení
+- ✅ **Reset hesla přes email** s tokenem (1h platnost)
+- ✅ **Role-based access control** (Manager / Employee)
 - ✅ Ochrana všech API endpoints
 
 ### Dashboard
@@ -61,10 +64,12 @@ Kompletní CRM systém pro marketingovou firmu Nevymyslíš. Umožňuje správu 
 ### Správa faktur
 - ✅ CRUD operace
 - ✅ Propojení s klientem
-- ✅ Číslo faktury (unikátní)
+- ✅ **Automatické číslování faktur** (formát: RRRRMMXXXXX)
+- ✅ **Generování PDF faktur** s firemními údaji
 - ✅ Částka, datum vystavení a splatnost
 - ✅ Označení jako zaplaceno
 - ✅ Vizuální upozornění na faktury po splatnosti
+- ✅ Popis služeb (povinný)
 
 ## 📦 Instalace
 
@@ -126,10 +131,11 @@ npm run dev
 
 Frontend aplikace běží na: `http://localhost:5173`
 
-### Demo přístup
-Po inicializaci databáze můžete použít:
-- **Email:** admin@nevymyslis.cz
-- **Heslo:** admin123
+### První přihlášení
+Po inicializaci databáze (`npm run init-db`) se vytvoří admin účet:
+- **Email:** info@nevymyslis.cz
+- **Dočasné heslo:** Bude zobrazeno v konzoli
+- ⚠️ **Musíte změnit heslo při prvním přihlášení!**
 
 ## 📁 Struktura projektu
 
@@ -182,9 +188,12 @@ nevymyslis-crm/
 
 ### Autentizace
 ```
-POST   /api/auth/register    - Registrace uživatele
-POST   /api/auth/login       - Přihlášení uživatele
-GET    /api/auth/me          - Informace o přihlášeném uživateli
+POST   /api/auth/register         - Vytvoření uživatele (pouze admin)
+POST   /api/auth/login            - Přihlášení uživatele
+POST   /api/auth/change-password  - Změna hesla
+POST   /api/auth/forgot-password  - Žádost o reset hesla (email)
+POST   /api/auth/reset-password   - Reset hesla pomocí tokenu
+GET    /api/auth/me               - Informace o přihlášeném uživateli
 ```
 
 ### Klienti

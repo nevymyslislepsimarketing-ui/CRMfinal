@@ -111,18 +111,12 @@ const Login = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Nemáte účet?{' '}
-              <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-                Zaregistrujte se
-              </Link>
-            </p>
-          </div>
-
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 font-semibold mb-1">Demo přístup:</p>
-            <p className="text-xs text-gray-500">Email: admin@nevymyslis.cz</p>
-            <p className="text-xs text-gray-500">Heslo: admin123</p>
+            <Link 
+              to="/forgot-password" 
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Zapomněli jste heslo?
+            </Link>
           </div>
         </div>
       </div>
