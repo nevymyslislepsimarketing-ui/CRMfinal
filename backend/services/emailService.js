@@ -19,7 +19,10 @@ const sendPasswordResetEmail = async (user, resetToken) => {
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
   
   const msg = {
-    from: `"${process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'}" <${process.env.SMTP_USER}>`,
+    from: {
+      email: process.env.SMTP_USER || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
     to: user.email,
     subject: 'Reset hesla - Nevymyslíš CRM',
     html: `
@@ -168,7 +171,10 @@ const sendPasswordResetEmail = async (user, resetToken) => {
     console.log('✅ Reset email odeslán přes SendGrid na:', user.email);
     return { success: true };
   } catch (error) {
-    console.error('❌ Chyba při odesílání emailu:', error.message);
+    console.error('❌ SendGrid error:', error.message);
+    if (error.response) {
+      console.error('❌ SendGrid response:', JSON.stringify(error.response.body));
+    }
     return { success: false, error: error.message };
   }
 };
@@ -183,7 +189,10 @@ const sendWelcomeEmail = async (user, temporaryPassword) => {
   const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
   
   const msg = {
-    from: `"${process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'}" <${process.env.SMTP_USER}>`,
+    from: {
+      email: process.env.SMTP_USER || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
     to: user.email,
     subject: 'Vítejte v Nevymyslíš CRM',
     html: `
@@ -341,7 +350,10 @@ const sendWelcomeEmail = async (user, temporaryPassword) => {
     console.log('✅ Uvítací email odeslán přes SendGrid na:', user.email);
     return { success: true };
   } catch (error) {
-    console.error('❌ Chyba při odesílání emailu:', error.message);
+    console.error('❌ SendGrid error:', error.message);
+    if (error.response) {
+      console.error('❌ SendGrid response:', JSON.stringify(error.response.body));
+    }
     return { success: false, error: error.message };
   }
 };
