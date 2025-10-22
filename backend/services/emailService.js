@@ -1,28 +1,48 @@
-const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
 
-// Inicializace SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  console.log('✅ SendGrid API inicializováno');
-} else {
-  console.warn('⚠️  SENDGRID_API_KEY není nastaveno!');
-  console.warn('⚠️  Emaily nebudou odesílány.');
-}
+// Vytvoření transporteru pro Mailtrap
+const createTransporter = () => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('⚠️  SMTP credentials nejsou nastaveny!');
+    console.warn('⚠️  Emaily nebudou odesílány.');
+    return null;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: false, // true pro 465, false pro 587
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+
+  // Ověřit připojení
+  transporter.verify(function(error, success) {
+    if (error) {
+      console.error('❌ SMTP připojení selhalo:', error.message);
+    } else {
+      console.log('✅ Mailtrap SMTP připraven k odesílání emailů');
+    }
+  });
+
+  return transporter;
+};
 
 // Odeslat email pro reset hesla
 const sendPasswordResetEmail = async (user, resetToken) => {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log('⚠️  Email nebude odeslán (SendGrid API key není nastaven)');
-    return { success: false, error: 'SendGrid API key není nastaven' };
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.log('⚠️  Email nebude odeslán (SMTP není nakonfigurováno)');
+    return { success: false, error: 'SMTP není nakonfigurováno' };
   }
 
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
   
-  const msg = {
-    from: {
-      email: process.env.SMTP_USER || 'info@nevymyslis.cz',
-      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
-    },
+  const mailOptions = {
+    from: `"${process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'}" <${process.env.EMAIL_FROM || 'info@nevymyslis.cz'}>`,
     to: user.email,
     subject: 'Reset hesla - Nevymyslíš CRM',
     html: `
@@ -167,32 +187,29 @@ const sendPasswordResetEmail = async (user, resetToken) => {
   };
 
   try {
-    await sgMail.send(msg);
-    console.log('✅ Reset email odeslán přes SendGrid na:', user.email);
-    return { success: true };
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Reset email odeslán přes Mailtrap na:', user.email);
+    console.log('📧 Message ID:', info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ SendGrid error:', error.message);
-    if (error.response) {
-      console.error('❌ SendGrid response:', JSON.stringify(error.response.body));
-    }
+    console.error('❌ Chyba při odesílání emailu:', error.message);
     return { success: false, error: error.message };
   }
 };
 
 // Odeslat uvítací email novému uživateli
 const sendWelcomeEmail = async (user, temporaryPassword) => {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log('⚠️  Email nebude odeslán (SendGrid API key není nastaven)');
-    return { success: false, error: 'SendGrid API key není nastaven' };
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.log('⚠️  Email nebude odeslán (SMTP není nakonfigurováno)');
+    return { success: false, error: 'SMTP není nakonfigurováno' };
   }
 
   const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
   
-  const msg = {
-    from: {
-      email: process.env.SMTP_USER || 'info@nevymyslis.cz',
-      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
-    },
+  const mailOptions = {
+    from: `"${process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'}" <${process.env.EMAIL_FROM || 'info@nevymyslis.cz'}>`,
     to: user.email,
     subject: 'Vítejte v Nevymyslíš CRM',
     html: `
@@ -346,14 +363,12 @@ const sendWelcomeEmail = async (user, temporaryPassword) => {
   };
 
   try {
-    await sgMail.send(msg);
-    console.log('✅ Uvítací email odeslán přes SendGrid na:', user.email);
-    return { success: true };
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Uvítací email odeslán přes Mailtrap na:', user.email);
+    console.log('📧 Message ID:', info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ SendGrid error:', error.message);
-    if (error.response) {
-      console.error('❌ SendGrid response:', JSON.stringify(error.response.body));
-    }
+    console.error('❌ Chyba při odesílání emailu:', error.message);
     return { success: false, error: error.message };
   }
 };
