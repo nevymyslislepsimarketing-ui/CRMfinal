@@ -1,49 +1,43 @@
-const nodemailer = require('nodemailer');
-
-// Vytvoření transporteru pro Mailtrap
-const createTransporter = () => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️  SMTP credentials nejsou nastaveny!');
-    console.warn('⚠️  Emaily nebudou odesílány.');
-    return null;
+// Mailtrap API pomocí fetch (funguje na Render - neblokuje HTTP!)
+const sendMailtrapEmail = async (emailData) => {
+  if (!process.env.MAILTRAP_API_TOKEN) {
+    console.warn('⚠️  MAILTRAP_API_TOKEN není nastaven!');
+    return { success: false, error: 'API token chybí' };
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: false, // true pro 465, false pro 587
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
+  try {
+    const response = await fetch('https://send.api.mailtrap.io/api/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MAILTRAP_API_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(emailData)
+    });
 
-  // Ověřit připojení
-  transporter.verify(function(error, success) {
-    if (error) {
-      console.error('❌ SMTP připojení selhalo:', error.message);
-    } else {
-      console.log('✅ Mailtrap SMTP připraven k odesílání emailů');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Mailtrap API error: ${JSON.stringify(errorData)}`);
     }
-  });
 
-  return transporter;
+    const result = await response.json();
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('❌ Mailtrap API error:', error.message);
+    return { success: false, error: error.message };
+  }
 };
 
 // Odeslat email pro reset hesla
 const sendPasswordResetEmail = async (user, resetToken) => {
-  const transporter = createTransporter();
-  
-  if (!transporter) {
-    console.log('⚠️  Email nebude odeslán (SMTP není nakonfigurováno)');
-    return { success: false, error: 'SMTP není nakonfigurováno' };
-  }
-
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
   
-  const mailOptions = {
-    from: `"${process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'}" <${process.env.EMAIL_FROM || 'info@nevymyslis.cz'}>`,
-    to: user.email,
+  const emailData = {
+    from: {
+      email: process.env.EMAIL_FROM || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
+    to: [{ email: user.email }],
     subject: 'Reset hesla - Nevymyslíš CRM',
     html: `
       <!DOCTYPE html>
@@ -183,34 +177,55 @@ const sendPasswordResetEmail = async (user, resetToken) => {
       
       © ${new Date().getFullYear()} Nevymyslíš CRM
       info@nevymyslis.cz
+    `,
+    text: `
+      Reset hesla - Nevymyslíš CRM
+      
+      Ahoj ${user.name},
+      
+      Obdrželi jsme žádost o reset vašeho hesla pro přístup do Nevymyslíš CRM.
+      
+      Pro vytvoření nového hesla otevřete následující odkaz:
+      ${resetUrl}
+      
+      Důležité informace:
+      - Odkaz je platný 1 hodinu
+      - Odkaz lze použít pouze jednou
+      - Po použití bude automaticky zneplatněn
+      
+      Bezpečnostní upozornění:
+      Pokud jste o reset hesla nežádali, ignorujte tento email. 
+      Vaše heslo zůstane beze změny a váš účet je v bezpečí.
+      
+      S pozdravem,
+      Tým Nevymyslíš
+      
+      © ${new Date().getFullYear()} Nevymyslíš CRM
+      info@nevymyslis.cz
     `
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Reset email odeslán přes Mailtrap na:', user.email);
-    console.log('📧 Message ID:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Chyba při odesílání emailu:', error.message);
-    return { success: false, error: error.message };
+  const result = await sendMailtrapEmail(emailData);
+  
+  if (result.success) {
+    console.log('✅ Reset email odeslán přes Mailtrap API na:', user.email);
+  } else {
+    console.error('❌ Chyba při odesílání emailu:', result.error);
   }
+  
+  return result;
 };
 
 // Odeslat uvítací email novému uživateli
 const sendWelcomeEmail = async (user, temporaryPassword) => {
-  const transporter = createTransporter();
-  
-  if (!transporter) {
-    console.log('⚠️  Email nebude odeslán (SMTP není nakonfigurováno)');
-    return { success: false, error: 'SMTP není nakonfigurováno' };
-  }
-
   const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
   
-  const mailOptions = {
-    from: `"${process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'}" <${process.env.EMAIL_FROM || 'info@nevymyslis.cz'}>`,
-    to: user.email,
+  const emailData = {
+    from: {
+      email: process.env.EMAIL_FROM || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
+    to: [{ email: user.email }],
     subject: 'Vítejte v Nevymyslíš CRM',
     html: `
       <!DOCTYPE html>
@@ -359,18 +374,49 @@ const sendWelcomeEmail = async (user, temporaryPassword) => {
       
       © ${new Date().getFullYear()} Nevymyslíš CRM
       info@nevymyslis.cz
+    `,
+    text: `
+      Vítejte v Nevymyslíš CRM
+      
+      Ahoj ${user.name},
+      
+      Váš účet v Nevymyslíš CRM byl úspěšně vytvořen!
+      
+      Přihlašovací údaje:
+      Email: ${user.email}
+      Dočasné heslo: ${temporaryPassword}
+      
+      DŮLEŽITÉ - První přihlášení:
+      Při prvním přihlášení budete vyzváni ke změně hesla. 
+      Z bezpečnostních důvodů je toto povinné.
+      
+      Přihlaste se zde: ${loginUrl}
+      
+      Tipy pro bezpečné heslo:
+      - Minimálně 8 znaků
+      - Kombinace velkých a malých písmen
+      - Přidejte čísla a speciální znaky
+      - Nepoužívejte osobní informace
+      
+      Pokud máte jakékoliv otázky, neváhejte nás kontaktovat.
+      
+      S pozdravem,
+      Tým Nevymyslíš
+      
+      © ${new Date().getFullYear()} Nevymyslíš CRM
+      info@nevymyslis.cz
     `
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Uvítací email odeslán přes Mailtrap na:', user.email);
-    console.log('📧 Message ID:', info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error('❌ Chyba při odesílání emailu:', error.message);
-    return { success: false, error: error.message };
+  const result = await sendMailtrapEmail(emailData);
+  
+  if (result.success) {
+    console.log('✅ Uvítací email odeslán přes Mailtrap API na:', user.email);
+  } else {
+    console.error('❌ Chyba při odesílání emailu:', result.error);
   }
+  
+  return result;
 };
 
 module.exports = {
