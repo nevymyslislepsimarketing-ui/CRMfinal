@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { Users, Plus, X, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Plus, X, CheckCircle, XCircle, Trash2, Ban, UserCheck } from 'lucide-react';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -83,6 +83,44 @@ const Admin = () => {
     return { total: userTasks.length, completed, pending, inProgress };
   };
 
+  const handleToggleStatus = async (userId) => {
+    if (!confirm('Opravdu chcete změnit status tohoto uživatele?')) return;
+
+    try {
+      await api.patch(`/users/${userId}/toggle-status`);
+      fetchUsers();
+      alert('Status uživatele byl změněn');
+    } catch (error) {
+      console.error('Chyba při změně statusu:', error);
+      alert(error.response?.data?.error || 'Nepodařilo se změnit status');
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('Opravdu chcete smazat tohoto uživatele? Tato akce je nevratná!')) return;
+
+    try {
+      await api.delete(`/users/${userId}`);
+      fetchUsers();
+      alert('Uživatel byl úspěšně smazán');
+    } catch (error) {
+      console.error('Chyba při mazání uživatele:', error);
+      alert(error.response?.data?.error || 'Nepodařilo se smazat uživatele');
+    }
+  };
+
+  const canManageUser = (targetUser) => {
+    const isAdmin = user.email === 'info@nevymyslis.cz';
+    const isManager = user.role === 'manager';
+    const targetIsEmployee = targetUser.role === 'employee';
+    const isSelf = targetUser.id === user.id;
+
+    if (isSelf) return false; // Nelze upravovat sebe
+    if (isAdmin) return true; // Admin může vše
+    if (isManager && targetIsEmployee) return true; // Manager jen employees
+    return false;
+  };
+
   if (user?.role !== 'manager') {
     return (
       <div className="text-center py-12">
@@ -123,20 +161,50 @@ const Admin = () => {
           return (
             <div key={u.id} className="card">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{u.name}</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900">{u.name}</h3>
+                    {!u.is_active && (
+                      <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-800">
+                        Neaktivní
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-600">{u.position || u.role}</p>
                   <p className="text-sm text-gray-500">{u.email}</p>
                 </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded ${
-                    u.role === 'manager'
-                      ? 'bg-purple-100 text-purple-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
-                  {u.role === 'manager' ? 'Manažer' : 'Pracovník'}
-                </span>
+                <div className="flex flex-col gap-2 items-end">
+                  <span
+                    className={`text-xs px-2 py-1 rounded ${
+                      u.role === 'manager'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {u.role === 'manager' ? 'Manažer' : 'Pracovník'}
+                  </span>
+                  
+                  {canManageUser(u) && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleToggleStatus(u.id)}
+                        className={`p-1.5 rounded hover:bg-gray-100 transition-colors ${
+                          u.is_active ? 'text-orange-600' : 'text-green-600'
+                        }`}
+                        title={u.is_active ? 'Deaktivovat uživatele' : 'Aktivovat uživatele'}
+                      >
+                        {u.is_active ? <Ban size={16} /> : <UserCheck size={16} />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        className="p-1.5 rounded hover:bg-gray-100 text-red-600 transition-colors"
+                        title="Smazat uživatele"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="border-t pt-4">

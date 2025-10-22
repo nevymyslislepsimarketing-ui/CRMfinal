@@ -20,8 +20,6 @@ const Tasks = () => {
     client_id: '',
     assigned_to: '',
     task_type_id: '',
-    start_time: '',
-    end_time: '',
   });
   const [recurringFormData, setRecurringFormData] = useState({
     title: '',
@@ -93,8 +91,6 @@ const Tasks = () => {
         client_id: task.client_id || '',
         assigned_to: task.assigned_to || '',
         task_type_id: task.task_type_id || '',
-        start_time: task.start_time ? task.start_time.substring(0, 16) : '',
-        end_time: task.end_time ? task.end_time.substring(0, 16) : '',
       });
     } else {
       setEditingTask(null);
@@ -107,8 +103,6 @@ const Tasks = () => {
         client_id: '',
         assigned_to: '',
         task_type_id: '',
-        start_time: '',
-        end_time: '',
       });
     }
     setShowModal(true);
@@ -413,29 +407,8 @@ const Tasks = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Začátek</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.start_time}
-                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="label">Konec</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                    className="input-field"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="label">Termín</label>
+                <label className="label">Termín dokončení</label>
                 <input
                   type="date"
                   value={formData.deadline}
