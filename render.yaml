@@ -1,0 +1,51 @@
+services:
+  # Backend API Service
+  - type: web
+    name: nevymyslis-crm-backend
+    env: node
+    region: frankfurt  # Nebo oregon, singapore podle preferencí
+    plan: free
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nevymyslis-crm-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false  # Nastavit v Render Dashboard
+      - key: MAILTRAP_API_TOKEN
+        sync: false  # Nastavit v Render Dashboard
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: Nevymyslíš CRM
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+  # Frontend Static Site
+  - type: web
+    name: nevymyslis-crm-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
+    pullRequestPreviewsEnabled: true
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://nevymyslis-crm-backend.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    autoDeploy: true
+
+databases:
+  # PostgreSQL Database
+  - name: nevymyslis-crm-db
+    databaseName: nevymyslis_crm
+    plan: free
+    region: frankfurt
