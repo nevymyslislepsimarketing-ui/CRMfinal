@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { Users, CheckSquare, FileText, AlertCircle, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recentTasks, setRecentTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
@@ -81,7 +82,10 @@ const Dashboard = () => {
 
       {/* Statistiky */}
       <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'manager' ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-2'} gap-6 mb-8`}>
-        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <div 
+          onClick={() => navigate('/clients')} 
+          className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer hover:shadow-xl transition-shadow"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm font-medium">Celkem klientů</p>
@@ -94,7 +98,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+        <div 
+          onClick={() => navigate('/tasks')} 
+          className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white cursor-pointer hover:shadow-xl transition-shadow"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-yellow-100 text-sm font-medium">Nevyřízené úkoly</p>
@@ -108,7 +115,10 @@ const Dashboard = () => {
         {/* Fakturační statistiky pouze pro manažery */}
         {user?.role === 'manager' && (
           <>
-            <div className="card bg-gradient-to-br from-red-500 to-red-600 text-white">
+            <div 
+              onClick={() => navigate('/invoices')} 
+              className="card bg-gradient-to-br from-red-500 to-red-600 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-red-100 text-sm font-medium">Faktury po splatnosti</p>
@@ -121,7 +131,10 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <div 
+              onClick={() => navigate('/invoices')} 
+              className="card bg-gradient-to-br from-green-500 to-green-600 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-sm font-medium">Nezaplaceno</p>
@@ -134,7 +147,10 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <div 
+              onClick={() => navigate('/invoices')} 
+              className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white cursor-pointer hover:shadow-xl transition-shadow"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm font-medium">Za tento měsíc</p>

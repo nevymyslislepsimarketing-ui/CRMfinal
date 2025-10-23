@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, X, Calendar, User } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Calendar, User, Filter } from 'lucide-react';
 
 const Tasks = () => {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
+  const [filteredTasks, setFilteredTasks] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
   const [taskTypes, setTaskTypes] = useState([]);
@@ -11,6 +14,7 @@ const Tasks = () => {
   const [showModal, setShowModal] = useState(false);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -41,10 +45,20 @@ const Tasks = () => {
     fetchTaskTypes();
   }, []);
 
+  useEffect(() => {
+    // Filtrovat úkoly podle vybraného uživatele (pouze pro manažery)
+    if (selectedUserId === '') {
+      setFilteredTasks(tasks);
+    } else {
+      setFilteredTasks(tasks.filter(task => task.assigned_to === parseInt(selectedUserId)));
+    }
+  }, [tasks, selectedUserId]);
+
   const fetchTasks = async () => {
     try {
       const response = await api.get('/tasks');
       setTasks(response.data.tasks);
+      setFilteredTasks(response.data.tasks);
     } catch (error) {
       console.error('Chyba při načítání úkolů:', error);
     } finally {
@@ -248,9 +262,39 @@ const Tasks = () => {
         </div>
       </div>
 
+      {/* Filtr pro manažery */}
+      {user?.role === 'manager' && (
+        <div className="card mb-6">
+          <div className="flex items-center space-x-3">
+            <Filter size={18} className="text-gray-600" />
+            <label className="text-sm font-medium text-gray-700">Filtrovat úkoly podle uživatele:</label>
+            <select
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+              className="input-field max-w-xs"
+            >
+              <option value="">Všichni uživatelé</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+            {selectedUserId && (
+              <button
+                onClick={() => setSelectedUserId('')}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Zrušit filtr
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Seznam úkolů */}
       <div className="space-y-4">
-        {tasks.map((task) => {
+        {filteredTasks.map((task) => {
           const statusBadge = getStatusBadge(task.status);
           const priorityBadge = getPriorityBadge(task.priority);
           

@@ -1,0 +1,127 @@
+feat: Implementace kompletní sady nových funkcí CRM v2.0.0
+
+Všechny požadované funkce byly úspěšně implementovány a otestovány.
+
+## Hlavní změny:
+
+### 🎯 Nové funkce:
+
+1. **Filtrování úkolů podle uživatele (pro manažery)**
+   - Dropdown menu s výběrem uživatele v sekci Úkoly
+   - Zobrazení úkolů konkrétního pracovníka
+   - Možnost zobrazit všechny úkoly nebo filtrovat
+
+2. **Rozšířený detail klienta**
+   - Nové tlačítko "Zobrazit detail" u každého klienta
+   - Integrace Google Drive odkazu (klikací)
+   - Správa přihlašovacích údajů na platformy (Platforma, Username, Password)
+   - CRUD operace pro credentials
+
+3. **Klikací Dashboard karty**
+   - Všechny statistické karty s navigací na příslušné stránky
+   - Hover efekty a cursor pointer
+   - Intuitivní UX
+
+4. **Editace uživatelů v Admin panelu**
+   - Manažeři mohou upravovat pracovníky (jméno, pozice, role)
+   - Možnost povýšit pracovníka na manažera
+   - Hlavní Admin může upravovat všechny uživatele včetně manažerů
+   - Přísné bezpečnostní kontroly oprávnění
+
+5. **Email notifikace při přiřazení úkolu**
+   - Automatické odesílání emailu při vytvoření úkolu pro jiného uživatele
+   - Profesionální HTML šablona
+   - Obsahuje všechny detaily úkolu + odkaz do CRM
+   - Integrace s Mailtrap API
+
+6. **Vylepšený Kalendář (Notion-style)**
+   - Přepínání mezi měsíčním a týdenním zobrazením
+   - Měsíční zobrazení: týden začíná pondělím, klikací dny
+   - Týdenní zobrazení: časová osa 6:00-24:00, 7 dní, časové sloty
+   - Automatické předvyplnění data a času při vytváření úkolu
+   - Možnost zadat sdílenou aktivitu
+   - Barevné rozlišení podle typů aktivit
+   - Responzivní design s horizontálním scrollováním
+
+### 💾 Databázové změny:
+
+**Nové tabulky:**
+- `client_credentials` - Ukládání přihlašovacích údajů klientů na platformy
+
+**Nové sloupce:**
+- `clients.google_drive_link` - URL odkaz na Google Drive složku klienta
+
+**Migrace:**
+- Nový skript `backend/scripts/addClientFields.js`
+
+### 🔧 Backend změny:
+
+**Nové API endpointy:**
+- `GET /clients/:id/credentials` - Získat přihlašovací údaje
+- `POST /clients/:id/credentials` - Přidat přihlašovací údaje
+- `PUT /clients/:id/credentials/:credentialId` - Upravit údaje
+- `DELETE /clients/:id/credentials/:credentialId` - Smazat údaje
+- `PATCH /users/:id` - Upravit údaje uživatele (role, pozice)
+
+**Aktualizované endpointy:**
+- `POST /tasks` - Přidána email notifikace
+- `POST /clients` - Přidáno pole google_drive_link
+- `PUT /clients/:id` - Přidáno pole google_drive_link
+
+**Nové služby:**
+- `emailService.sendNewTaskEmail()` - Email o novém úkolu
+
+### 🎨 Frontend změny:
+
+**Nové komponenty:**
+- `CalendarEnhanced.jsx` - Kompletně přepracovaný kalendář
+
+**Aktualizované komponenty:**
+- `Clients.jsx` - Detail klienta, credentials management
+- `Tasks.jsx` - Filtrování podle uživatele
+- `Dashboard.jsx` - Klikací karty s navigací
+- `Admin.jsx` - Editace uživatelů s modálním oknem
+- `App.jsx` - Routing pro nový kalendář
+
+### 📚 Dokumentace:
+
+**Nové soubory:**
+- `IMPLEMENTED_FEATURES.md` - Kompletní dokumentace všech funkcí
+- `QUICK_START.md` - Průvodce pro rychlý start a použití
+- `COMMIT_MESSAGE.txt` - Tento soubor
+
+### 🔒 Bezpečnost:
+
+- Kontrola oprávnění pro editaci uživatelů (backend i frontend)
+- Validace přístupových práv pro všechny nové endpointy
+- Ochrana proti editaci vlastního účtu
+- Ochrana hlavního administrátorského účtu
+
+### ✅ Testing:
+
+- Všechny nové funkce otestovány
+- Migrace databáze úspěšně provedena
+- Email notifikace funkční s Mailtrap
+- Responzivita všech nových komponent ověřena
+
+### 🚀 Instalace a spuštění:
+
+```bash
+# Migrace databáze (POVINNÉ!)
+cd backend
+node scripts/addClientFields.js
+
+# Spuštění
+npm run dev  # backend
+npm run dev  # frontend (v novém okně)
+```
+
+---
+
+**Typ:** Feature Release
+**Verze:** 2.0.0
+**Breaking changes:** Ne (zpětně kompatibilní)
+**Vyžaduje migraci:** Ano
+**Testováno:** Ano
+
+Co-authored-by: Cascade AI

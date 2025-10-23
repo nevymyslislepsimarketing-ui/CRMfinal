@@ -13,7 +13,7 @@ import Clients from './pages/Clients';
 import Tasks from './pages/Tasks';
 import Invoices from './pages/Invoices';
 import Pipeline from './pages/Pipeline';
-import Calendar from './pages/Calendar';
+import CalendarEnhanced from './pages/CalendarEnhanced';
 import Admin from './pages/Admin';
 import Settings from './pages/Settings';
 
@@ -88,7 +88,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <Calendar />
+                  <CalendarEnhanced />
                 </Layout>
               </ProtectedRoute>
             }

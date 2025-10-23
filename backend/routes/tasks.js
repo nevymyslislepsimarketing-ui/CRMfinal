@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/database');
 const authenticateToken = require('../middleware/auth');
+const { sendNewTaskEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -85,9 +86,43 @@ router.post('/', async (req, res) => {
       [title, description, deadline, priority, status, client_id, assigned_to, task_type_id, start_time, end_time]
     );
 
+    const createdTask = result.rows[0];
+
+    // Odeslat email, pokud je úkol přiřazen někomu jinému než tvůrci
+    if (assigned_to && assigned_to !== req.user.id) {
+      try {
+        // Získat informace o přiřazeném uživateli
+        const userResult = await pool.query('SELECT name, email FROM users WHERE id = $1', [assigned_to]);
+        
+        if (userResult.rows.length > 0) {
+          const assignedUser = userResult.rows[0];
+          
+          // Získat jméno klienta, pokud existuje
+          let clientName = null;
+          if (client_id) {
+            const clientResult = await pool.query('SELECT name FROM clients WHERE id = $1', [client_id]);
+            if (clientResult.rows.length > 0) {
+              clientName = clientResult.rows[0].name;
+            }
+          }
+          
+          // Odeslat email (bez čekání na dokončení)
+          sendNewTaskEmail(assignedUser, {
+            ...createdTask,
+            client_name: clientName
+          }, req.user.name).catch(err => {
+            console.error('Chyba při odesílání emailu o úkolu:', err);
+          });
+        }
+      } catch (emailError) {
+        console.error('Chyba při zpracování emailu:', emailError);
+        // Nepřerušujeme proces - úkol byl vytvořen
+      }
+    }
+
     res.status(201).json({
       message: 'Úkol úspěšně vytvořen',
-      task: result.rows[0]
+      task: createdTask
     });
   } catch (error) {
     console.error('Chyba při vytváření úkolu:', error);

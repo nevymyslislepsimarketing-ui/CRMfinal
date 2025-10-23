@@ -419,7 +419,203 @@ const sendWelcomeEmail = async (user, temporaryPassword) => {
   return result;
 };
 
+// Odeslat email o novém úkolu
+const sendNewTaskEmail = async (user, task, assignedBy) => {
+  const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/tasks`;
+  
+  const priorityLabels = {
+    low: 'Nízká',
+    medium: 'Střední',
+    high: 'Vysoká'
+  };
+  
+  const emailData = {
+    from: {
+      email: process.env.EMAIL_FROM || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
+    to: [{ email: user.email }],
+    subject: `Nový úkol: ${task.title}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+          }
+          .content {
+            background: #ffffff;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+          }
+          .task-details {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+          }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .info-row:last-child {
+            border-bottom: none;
+          }
+          .priority-high {
+            color: #dc3545;
+            font-weight: bold;
+          }
+          .priority-medium {
+            color: #0d6efd;
+            font-weight: bold;
+          }
+          .priority-low {
+            color: #6c757d;
+            font-weight: bold;
+          }
+          .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 style="margin: 0;">✅ Máte nový úkol</h1>
+        </div>
+        
+        <div class="content">
+          <p>Ahoj <strong>${user.name}</strong>,</p>
+          
+          <p><strong>${assignedBy}</strong> vám přiřadil/a nový úkol v systému <strong>Nevymyslíš CRM</strong>.</p>
+          
+          <div class="task-details">
+            <h3 style="margin-top: 0; color: #667eea;">📋 Detaily úkolu:</h3>
+            
+            <div class="info-row">
+              <strong>Název:</strong>
+              <span>${task.title}</span>
+            </div>
+            
+            ${task.description ? `
+            <div class="info-row">
+              <strong>Popis:</strong>
+              <span>${task.description}</span>
+            </div>
+            ` : ''}
+            
+            <div class="info-row">
+              <strong>Priorita:</strong>
+              <span class="priority-${task.priority}">${priorityLabels[task.priority] || task.priority}</span>
+            </div>
+            
+            ${task.deadline ? `
+            <div class="info-row">
+              <strong>Termín:</strong>
+              <span>${new Date(task.deadline).toLocaleDateString('cs-CZ')}</span>
+            </div>
+            ` : ''}
+            
+            ${task.client_name ? `
+            <div class="info-row">
+              <strong>Klient:</strong>
+              <span>${task.client_name}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="${taskUrl}" class="button">Zobrazit úkol v CRM</a>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            Přihlaste se do systému pro zobrazení všech detailů a možnost práce s úkolem.
+          </p>
+        </div>
+        
+        <div class="footer">
+          <p>
+            <strong>Nevymyslíš CRM</strong><br>
+            © ${new Date().getFullYear()} Všechna práva vyhrazena<br>
+            <a href="mailto:info@nevymyslis.cz" style="color: #667eea;">info@nevymyslis.cz</a>
+          </p>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Nový úkol - Nevymyslíš CRM
+      
+      Ahoj ${user.name},
+      
+      ${assignedBy} vám přiřadil/a nový úkol v systému Nevymyslíš CRM.
+      
+      Detaily úkolu:
+      
+      Název: ${task.title}
+      ${task.description ? `Popis: ${task.description}` : ''}
+      Priorita: ${priorityLabels[task.priority] || task.priority}
+      ${task.deadline ? `Termín: ${new Date(task.deadline).toLocaleDateString('cs-CZ')}` : ''}
+      ${task.client_name ? `Klient: ${task.client_name}` : ''}
+      
+      Zobrazit úkol: ${taskUrl}
+      
+      Přihlaste se do systému pro zobrazení všech detailů a možnost práce s úkolem.
+      
+      S pozdravem,
+      Tým Nevymyslíš
+      
+      © ${new Date().getFullYear()} Nevymyslíš CRM
+      info@nevymyslis.cz
+    `
+  };
+
+  const result = await sendMailtrapEmail(emailData);
+  
+  if (result.success) {
+    console.log('✅ Email o novém úkolu odeslán přes Mailtrap API na:', user.email);
+  } else {
+    console.error('❌ Chyba při odesílání emailu o úkolu:', result.error);
+  }
+  
+  return result;
+};
+
 module.exports = {
   sendPasswordResetEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendNewTaskEmail
 };

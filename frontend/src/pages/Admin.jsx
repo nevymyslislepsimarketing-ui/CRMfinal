@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { Users, Plus, X, CheckCircle, XCircle, Trash2, Ban, UserCheck } from 'lucide-react';
+import { Users, Plus, X, CheckCircle, XCircle, Trash2, Ban, UserCheck, Edit } from 'lucide-react';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -9,11 +9,18 @@ const Admin = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     role: 'employee',
+    position: '',
+  });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    role: '',
     position: '',
   });
 
@@ -121,6 +128,41 @@ const Admin = () => {
     return false;
   };
 
+  // Otevřít modal pro úpravu uživatele
+  const handleOpenEditModal = (targetUser) => {
+    setEditingUser(targetUser);
+    setEditFormData({
+      name: targetUser.name,
+      role: targetUser.role,
+      position: targetUser.position || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingUser(null);
+    setEditFormData({
+      name: '',
+      role: '',
+      position: '',
+    });
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    
+    try {
+      await api.patch(`/users/${editingUser.id}`, editFormData);
+      fetchUsers();
+      handleCloseEditModal();
+      alert('Uživatel úspěšně upraven');
+    } catch (error) {
+      console.error('Chyba při úpravě uživatele:', error);
+      alert(error.response?.data?.error || 'Nepodařilo se upravit uživatele');
+    }
+  };
+
   if (user?.role !== 'manager') {
     return (
       <div className="text-center py-12">
@@ -186,6 +228,13 @@ const Admin = () => {
                   
                   {canManageUser(u) && (
                     <div className="flex gap-1">
+                      <button
+                        onClick={() => handleOpenEditModal(u)}
+                        className="p-1.5 rounded hover:bg-gray-100 text-blue-600 transition-colors"
+                        title="Upravit uživatele"
+                      >
+                        <Edit size={16} />
+                      </button>
                       <button
                         onClick={() => handleToggleStatus(u.id)}
                         className={`p-1.5 rounded hover:bg-gray-100 transition-colors ${
@@ -329,6 +378,73 @@ const Admin = () => {
                 <button
                   type="button"
                   onClick={() => setShowUserModal(false)}
+                  className="flex-1 btn-secondary"
+                >
+                  Zrušit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal pro úpravu uživatele */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Upravit uživatele</h2>
+              <button onClick={handleCloseEditModal} className="text-gray-500 hover:text-gray-700">
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditUser} className="p-6 space-y-4">
+              <div>
+                <label className="label">Jméno</label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="label">Pozice</label>
+                <input
+                  type="text"
+                  value={editFormData.position}
+                  onChange={(e) => setEditFormData({ ...editFormData, position: e.target.value })}
+                  className="input-field"
+                  placeholder="např. Grafik, Social Media Manager..."
+                />
+              </div>
+
+              <div>
+                <label className="label">Role</label>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                  className="input-field"
+                >
+                  <option value="employee">Pracovník</option>
+                  <option value="manager">Manažer</option>
+                </select>
+                {user.email === 'info@nevymyslis.cz' && editingUser.role === 'manager' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Pouze hlavní administrátor může změnit roli manažera na pracovníka
+                  </p>
+                )}
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="flex-1 btn-primary">
+                  Uložit změny
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
                   className="flex-1 btn-secondary"
                 >
                   Zrušit

@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
 
 // Vytvořit nového klienta
 router.post('/', async (req, res) => {
-  const { name, email, phone, status = 'active', notes, billing_company_name, ico, dic, billing_address } = req.body;
+  const { name, email, phone, status = 'active', notes, billing_company_name, ico, dic, billing_address, google_drive_link } = req.body;
 
   try {
     if (!name) {
@@ -65,8 +65,8 @@ router.post('/', async (req, res) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO clients (name, email, phone, status, notes, billing_company_name, ico, dic, billing_address) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address]
+      'INSERT INTO clients (name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link]
     );
 
     res.status(201).json({
@@ -82,12 +82,12 @@ router.post('/', async (req, res) => {
 // Aktualizovat klienta
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone, status, notes, billing_company_name, ico, dic, billing_address } = req.body;
+  const { name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link } = req.body;
 
   try {
     const result = await pool.query(
-      'UPDATE clients SET name = $1, email = $2, phone = $3, status = $4, notes = $5, billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10 RETURNING *',
-      [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, id]
+      'UPDATE clients SET name = $1, email = $2, phone = $3, status = $4, notes = $5, billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11 RETURNING *',
+      [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, id]
     );
 
     if (result.rows.length === 0) {
@@ -184,6 +184,94 @@ router.delete('/:id/users/:userId', async (req, res) => {
     res.json({ message: 'Přístup úspěšně odebrán' });
   } catch (error) {
     console.error('Chyba při odebírání přístupu:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Získat přihlašovací údaje klienta
+router.get('/:id/credentials', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM client_credentials WHERE client_id = $1 ORDER BY created_at DESC',
+      [id]
+    );
+
+    res.json({ credentials: result.rows });
+  } catch (error) {
+    console.error('Chyba při získávání přihlašovacích údajů:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Přidat přihlašovací údaje klienta
+router.post('/:id/credentials', async (req, res) => {
+  const { id } = req.params;
+  const { platform, username, password, notes } = req.body;
+
+  try {
+    if (!platform) {
+      return res.status(400).json({ error: 'Platforma je povinná' });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO client_credentials (client_id, platform, username, password, notes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, platform, username, password, notes]
+    );
+
+    res.status(201).json({
+      message: 'Přihlašovací údaje úspěšně přidány',
+      credential: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Chyba při přidávání přihlašovacích údajů:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Aktualizovat přihlašovací údaje
+router.put('/:id/credentials/:credentialId', async (req, res) => {
+  const { id, credentialId } = req.params;
+  const { platform, username, password, notes } = req.body;
+
+  try {
+    const result = await pool.query(
+      'UPDATE client_credentials SET platform = $1, username = $2, password = $3, notes = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND client_id = $6 RETURNING *',
+      [platform, username, password, notes, credentialId, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Přihlašovací údaje nenalezeny' });
+    }
+
+    res.json({
+      message: 'Přihlašovací údaje úspěšně aktualizovány',
+      credential: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Chyba při aktualizaci přihlašovacích údajů:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Smazat přihlašovací údaje
+router.delete('/:id/credentials/:credentialId', async (req, res) => {
+  const { id, credentialId } = req.params;
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM client_credentials WHERE id = $1 AND client_id = $2 RETURNING *',
+      [credentialId, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Přihlašovací údaje nenalezeny' });
+    }
+
+    res.json({ message: 'Přihlašovací údaje úspěšně smazány' });
+  } catch (error) {
+    console.error('Chyba při mazání přihlašovacích údajů:', error);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });
