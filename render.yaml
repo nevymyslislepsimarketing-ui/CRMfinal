@@ -17,30 +17,16 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        sync: false  # Nastavit v Render Dashboard
+        sync: false  # URL vašeho Cloudflare Pages (např. https://nevymyslis-crm.pages.dev)
       - key: MAILTRAP_API_TOKEN
         sync: false  # Nastavit v Render Dashboard
       - key: EMAIL_FROM
         sync: false
       - key: EMAIL_FROM_NAME
         value: Nevymyslíš CRM
+      - key: CORS_ORIGIN
+        sync: false  # URL vašeho Cloudflare Pages pro CORS
     healthCheckPath: /api/health
-    autoDeploy: true
-
-  # Frontend Static Site
-  - type: web
-    name: nevymyslis-crm-frontend
-    env: static
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/build
-    pullRequestPreviewsEnabled: true
-    envVars:
-      - key: REACT_APP_API_URL
-        value: https://nevymyslis-crm-backend.onrender.com/api
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
     autoDeploy: true
 
 databases:
@@ -49,3 +35,6 @@ databases:
     databaseName: nevymyslis_crm
     plan: free
     region: frankfurt
+    
+# Poznámka: Frontend je nasazen na Cloudflare Pages
+# Viz CLOUDFLARE_DEPLOYMENT.md pro návod

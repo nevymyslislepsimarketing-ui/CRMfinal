@@ -17,14 +17,20 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+// CORS - povolit přístup z Cloudflare Pages (nebo localhost pro development)
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Základní route
 app.get('/', (req, res) => {
   res.json({
     message: '🚀 Nevymyslíš CRM API',
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
       auth: '/api/auth',
       clients: '/api/clients',
@@ -38,6 +44,15 @@ app.get('/', (req, res) => {
       companySettings: '/api/company-settings',
       invoicesPdf: '/api/invoices/:id/html'
     }
+  });
+});
+
+// Health check endpoint pro Render
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: '2.0.0'
   });
 });
 

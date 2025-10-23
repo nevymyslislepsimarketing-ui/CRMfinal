@@ -1,6 +1,8 @@
-feat: Implementace kompletní sady nových funkcí CRM v2.0.0
+feat: Implementace kompletní sady nových funkcí CRM v2.0.0 + Cloudflare/Render deployment
 
 Všechny požadované funkce byly úspěšně implementovány a otestovány.
+Přidána automatická migrace databáze při deploymentu na Render.com.
+Optimalizováno pro Cloudflare Pages (frontend) + Render (backend).
 
 ## Hlavní změny:
 
