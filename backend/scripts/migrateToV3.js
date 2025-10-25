@@ -87,6 +87,7 @@ const migrateToV3 = async () => {
         client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
         post_type VARCHAR(100),
         topic TEXT,
+        prompt TEXT,
         generated_caption TEXT,
         used BOOLEAN DEFAULT FALSE,
         created_by INTEGER REFERENCES users(id),
@@ -96,6 +97,21 @@ const migrateToV3 = async () => {
       CREATE INDEX IF NOT EXISTS idx_ai_history_client ON ai_post_history(client_id);
     `);
     console.log('✅ Tabulka ai_post_history vytvořena');
+    
+    // Přidat sloupec prompt pokud už tabulka existuje
+    console.log('🔧 Kontrola sloupce prompt...');
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'ai_post_history' AND column_name = 'prompt'
+        ) THEN
+          ALTER TABLE ai_post_history ADD COLUMN prompt TEXT;
+        END IF;
+      END $$;
+    `);
+    console.log('✅ Sloupec prompt zkontrolován');
 
     // 3. CENÍK A NABÍDKY
     console.log('💰 Vytváření tabulky service_pricing...');
