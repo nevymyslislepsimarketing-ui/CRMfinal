@@ -17,6 +17,7 @@ const pricingRoutes = require('./routes/pricing');
 const financeRoutes = require('./routes/finance');
 const aiCaptionsRoutes = require('./routes/ai-captions');
 const googleDriveRoutes = require('./routes/google-drive');
+const setupRoutes = require('./routes/setup');
 
 // CRON služba pro automatické notifikace a faktury
 const cronService = require('./services/cronService');
@@ -54,6 +55,8 @@ app.get('/', (req, res) => {
       pricing: '/api/pricing',
       finance: '/api/finance',
       aiCaptions: '/api/ai-captions',
+      googleDrive: '/api/google-drive',
+      setup: '/api/setup (ADMIN ONLY)',
       invoicesPdf: '/api/invoices/:id/html'
     }
   });
@@ -85,6 +88,7 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/ai-captions', aiCaptionsRoutes);
 app.use('/api/google-drive', googleDriveRoutes);
+app.use('/api/setup', setupRoutes);
 
 // 404 handler
 app.use((req, res) => {
