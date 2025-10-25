@@ -18,7 +18,8 @@ import {
   Briefcase,
   DollarSign,
   Sparkles,
-  FolderOpen
+  FolderOpen,
+  ChevronDown
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -26,26 +27,51 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState({
+    crm: false,
+    finance: false,
+    system: false
+  });
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const navigation = [
+  // Hlavní jednotlivé záložky
+  const mainNav = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, managerOnly: true },
-    { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
-    { name: 'Klienti', href: '/clients', icon: Users },
-    { name: 'Projekty', href: '/projects', icon: Briefcase },
-    { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
     { name: 'Kalendář', href: '/calendar', icon: Calendar },
     { name: 'AI Popisky', href: '/ai-captions', icon: Sparkles },
     { name: 'Google Drive', href: '/google-drive', icon: FolderOpen },
-    { name: 'Naceňování', href: '/pricing', icon: DollarSign, managerOnly: true },
-    { name: 'Faktury', href: '/invoices', icon: FileText, managerOnly: true },
-    { name: 'Admin', href: '/admin', icon: Shield, managerOnly: true },
-    { name: 'Nastavení', href: '/settings', icon: SettingsIcon, managerOnly: true },
   ];
+
+  // Dropdown skupiny
+  const dropdownGroups = {
+    crm: {
+      name: 'CRM',
+      items: [
+        { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
+        { name: 'Klienti', href: '/clients', icon: Users },
+        { name: 'Projekty', href: '/projects', icon: Briefcase },
+        { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
+      ]
+    },
+    finance: {
+      name: 'Finance',
+      items: [
+        { name: 'Naceňování', href: '/pricing', icon: DollarSign, managerOnly: true },
+        { name: 'Faktury', href: '/invoices', icon: FileText, managerOnly: true },
+      ]
+    },
+    system: {
+      name: 'Systém',
+      items: [
+        { name: 'Admin', href: '/admin', icon: Shield, managerOnly: true },
+        { name: 'Nastavení', href: '/settings', icon: SettingsIcon, managerOnly: true },
+      ]
+    }
+  };
 
   const getUserInitials = () => {
     if (!user?.name) return '?';
@@ -58,6 +84,19 @@ const Layout = ({ children }) => {
   };
 
   const isActive = (path) => location.pathname === path;
+
+  // Zavřít dropdown při kliknutí mimo
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setDropdownOpen({ crm: false, finance: false, system: false });
+    };
+    
+    if (Object.values(dropdownOpen).some(v => v)) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [dropdownOpen]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,10 +117,10 @@ const Layout = ({ children }) => {
               </div>
             </div>
             
-            {/* Desktop Navigation - Kompaktní */}
-            <div className="hidden lg:flex items-center space-x-0.5">
-              {navigation.map((item) => {
-                // Skrýt manager-only stránky pro běžné uživatele
+            {/* Desktop Navigation - Kompaktní s Dropdowns */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {/* Hlavní navigace */}
+              {mainNav.map((item) => {
                 if (item.managerOnly && user?.role !== 'manager') {
                   return null;
                 }
@@ -95,11 +134,61 @@ const Layout = ({ children }) => {
                         ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }`}
-                    title={item.name}
                   >
-                    <Icon size={16} />
-                    <span className="hidden xl:inline">{item.name}</span>
+                    <Icon size={14} />
+                    <span>{item.name}</span>
                   </Link>
+                );
+              })}
+
+              {/* Dropdown skupiny */}
+              {Object.entries(dropdownGroups).map(([key, group]) => {
+                // Filtrovat itemy podle role
+                const visibleItems = group.items.filter(item => 
+                  !item.managerOnly || user?.role === 'manager'
+                );
+                
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <div key={key} className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDropdownOpen(prev => ({ ...prev, [key]: !prev[key] }));
+                      }}
+                      className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        visibleItems.some(item => isActive(item.href))
+                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      <span>{group.name}</span>
+                      <ChevronDown size={12} className={`transition-transform ${dropdownOpen[key] ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {dropdownOpen[key] && (
+                      <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                        {visibleItems.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.href}
+                              onClick={() => setDropdownOpen(prev => ({ ...prev, [key]: false }))}
+                              className={`flex items-center space-x-2 px-3 py-2 text-sm hover:bg-gray-50 transition-all ${
+                                isActive(item.href) ? 'text-purple-600 bg-purple-50' : 'text-gray-700'
+                              }`}
+                            >
+                              <Icon size={16} />
+                              <span>{item.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -171,8 +260,8 @@ const Layout = ({ children }) => {
 
             {/* Menu Items */}
             <div className="px-4 py-2 space-y-1">
-              {navigation.map((item) => {
-                // Skrýt manager-only stránky pro běžné uživatele
+              {/* Hlavní navigace */}
+              {mainNav.map((item) => {
                 if (item.managerOnly && user?.role !== 'manager') {
                   return null;
                 }
@@ -191,6 +280,41 @@ const Layout = ({ children }) => {
                     <Icon size={20} />
                     <span>{item.name}</span>
                   </Link>
+                );
+              })}
+
+              {/* Dropdown skupiny - v mobile rozbalené */}
+              {Object.entries(dropdownGroups).map(([key, group]) => {
+                const visibleItems = group.items.filter(item => 
+                  !item.managerOnly || user?.role === 'manager'
+                );
+                
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <div key={key}>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {group.name}
+                    </div>
+                    {visibleItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
+                            isActive(item.href)
+                              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon size={20} />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 );
               })}
 
