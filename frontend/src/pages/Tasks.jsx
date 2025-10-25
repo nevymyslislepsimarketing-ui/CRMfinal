@@ -20,7 +20,7 @@ const Tasks = () => {
     description: '',
     deadline: '',
     priority: 'medium',
-    status: 'pending',
+    status: 'new',
     client_id: '',
     assigned_to: '',
     task_type_id: '',
@@ -113,7 +113,7 @@ const Tasks = () => {
         description: '',
         deadline: '',
         priority: 'medium',
-        status: 'pending',
+        status: 'new',
         client_id: '',
         assigned_to: '',
         task_type_id: '',
@@ -212,13 +212,21 @@ const Tasks = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-800',
+      new: 'bg-purple-100 text-purple-800',
       in_progress: 'bg-blue-100 text-blue-800',
+      waiting_for_client: 'bg-yellow-100 text-yellow-800',
+      done: 'bg-green-100 text-green-800',
+      // Legacy support
+      pending: 'bg-purple-100 text-purple-800',
       completed: 'bg-green-100 text-green-800',
     };
     const labels = {
+      new: 'Nový',
+      in_progress: 'V řešení',
+      waiting_for_client: 'Čeká na klienta',
+      done: 'Hotovo',
+      // Legacy support
       pending: 'Čeká',
-      in_progress: 'Probíhá',
       completed: 'Hotovo',
     };
     return { style: styles[status] || 'bg-gray-100 text-gray-800', label: labels[status] || status };
@@ -428,9 +436,10 @@ const Tasks = () => {
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="input-field"
                   >
-                    <option value="pending">Čeká</option>
-                    <option value="in_progress">Probíhá</option>
-                    <option value="completed">Hotovo</option>
+                    <option value="new">Nový</option>
+                    <option value="in_progress">V řešení</option>
+                    <option value="waiting_for_client">Čeká na klienta</option>
+                    <option value="done">Hotovo</option>
                   </select>
                 </div>
               </div>

@@ -12,6 +12,14 @@ const pipelineRoutes = require('./routes/pipeline');
 const taskTypesRoutes = require('./routes/task-types');
 const recurringTasksRoutes = require('./routes/recurring-tasks');
 const companySettingsRoutes = require('./routes/company-settings');
+const projectsRoutes = require('./routes/projects');
+const pricingRoutes = require('./routes/pricing');
+const financeRoutes = require('./routes/finance');
+const aiCaptionsRoutes = require('./routes/ai-captions');
+const googleDriveRoutes = require('./routes/google-drive');
+
+// CRON služba pro automatické notifikace a faktury
+const cronService = require('./services/cronService');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -30,7 +38,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({
     message: '🚀 Nevymyslíš CRM API',
-    version: '2.0.0',
+    version: '3.0.0',
     endpoints: {
       auth: '/api/auth',
       clients: '/api/clients',
@@ -42,6 +50,10 @@ app.get('/', (req, res) => {
       taskTypes: '/api/task-types',
       recurringTasks: '/api/recurring-tasks',
       companySettings: '/api/company-settings',
+      projects: '/api/projects',
+      pricing: '/api/pricing',
+      finance: '/api/finance',
+      aiCaptions: '/api/ai-captions',
       invoicesPdf: '/api/invoices/:id/html'
     }
   });
@@ -52,7 +64,8 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '2.0.0'
+    version: '3.0.0',
+    cron: 'running'
   });
 });
 
@@ -67,6 +80,11 @@ app.use('/api/pipeline', pipelineRoutes);
 app.use('/api/task-types', taskTypesRoutes);
 app.use('/api/recurring-tasks', recurringTasksRoutes);
 app.use('/api/company-settings', companySettingsRoutes);
+app.use('/api/projects', projectsRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/finance', financeRoutes);
+app.use('/api/ai-captions', aiCaptionsRoutes);
+app.use('/api/google-drive', googleDriveRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -87,10 +105,20 @@ app.listen(PORT, () => {
 ║                                        ║
 ║   Port: ${PORT}                         ║
 ║   Prostředí: ${process.env.NODE_ENV}   ║
+║   Verze: 3.0.0                         ║
 ║                                        ║
 ║   API: http://localhost:${PORT}/api   ║
 ╚════════════════════════════════════════╝
   `);
+  
+  // Spustit CRON joby pro automatické notifikace a faktury
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_CRON === 'true') {
+    console.log('⏰ Spouštím CRON joby...');
+    cronService.startCronJobs();
+  } else {
+    console.log('⏰ CRON joby jsou vypnuté (development mode)');
+    console.log('   Pro zapnutí nastavte ENABLE_CRON=true v .env');
+  }
 });
 
 module.exports = app;

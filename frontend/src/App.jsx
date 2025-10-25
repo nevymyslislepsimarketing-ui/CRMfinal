@@ -14,6 +14,11 @@ import Tasks from './pages/Tasks';
 import Invoices from './pages/Invoices';
 import Pipeline from './pages/Pipeline';
 import CalendarEnhanced from './pages/CalendarEnhanced';
+import Projects from './pages/Projects';
+import Pricing from './pages/Pricing';
+import AICaptions from './pages/AICaptions';
+import GoogleDrive from './pages/GoogleDrive';
+import GoogleCallback from './components/GoogleCallback';
 import Admin from './pages/Admin';
 import Settings from './pages/Settings';
 
@@ -93,6 +98,52 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Projects />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/pricing"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Pricing />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/ai-captions"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AICaptions />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/google-drive"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <GoogleDrive />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route path="/google-callback" element={<GoogleCallback />} />
           
           <Route
             path="/admin"

@@ -14,7 +14,11 @@ import {
   Settings as SettingsIcon,
   Mail,
   Calendar,
-  User
+  User,
+  Briefcase,
+  DollarSign,
+  Sparkles,
+  FolderOpen
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -32,8 +36,12 @@ const Layout = ({ children }) => {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, managerOnly: true },
     { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
     { name: 'Klienti', href: '/clients', icon: Users },
+    { name: 'Projekty', href: '/projects', icon: Briefcase },
     { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
     { name: 'Kalendář', href: '/calendar', icon: Calendar },
+    { name: 'AI Popisky', href: '/ai-captions', icon: Sparkles },
+    { name: 'Google Drive', href: '/google-drive', icon: FolderOpen },
+    { name: 'Naceňování', href: '/pricing', icon: DollarSign, managerOnly: true },
     { name: 'Faktury', href: '/invoices', icon: FileText, managerOnly: true },
     { name: 'Admin', href: '/admin', icon: Shield, managerOnly: true },
     { name: 'Nastavení', href: '/settings', icon: SettingsIcon, managerOnly: true },

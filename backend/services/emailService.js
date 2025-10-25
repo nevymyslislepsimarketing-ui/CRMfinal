@@ -614,8 +614,278 @@ const sendNewTaskEmail = async (user, task, assignedBy) => {
   return result;
 };
 
+// Odeslat email upozornění na deadline úkolu
+const sendTaskDeadlineEmail = async ({ to, userName, taskTitle, taskDescription, clientName, deadline, priority }) => {
+  const taskUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/tasks`;
+  
+  const priorityLabels = {
+    low: 'Nízká',
+    medium: 'Střední',
+    high: 'Vysoká'
+  };
+  
+  const emailData = {
+    from: {
+      email: process.env.EMAIL_FROM || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
+    to: [{ email: to }],
+    subject: `⏰ Deadline dnes: ${taskTitle}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+          }
+          .content {
+            background: #ffffff;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+          }
+          .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #856404;
+          }
+          .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 style="margin: 0;">⏰ Deadline úkolu je dnes!</h1>
+        </div>
+        <div class="content">
+          <p>Ahoj <strong>${userName}</strong>,</p>
+          <p>Připomínáme, že <strong>dnes</strong> je deadline pro následující úkol:</p>
+          <div class="warning">
+            <h3 style="margin-top: 0;">📋 ${taskTitle}</h3>
+            ${taskDescription ? `<p>${taskDescription}</p>` : ''}
+            <p><strong>Klient:</strong> ${clientName || 'Nezadáno'}</p>
+            <p><strong>Priorita:</strong> ${priorityLabels[priority] || priority}</p>
+            <p><strong>Deadline:</strong> ${new Date(deadline).toLocaleDateString('cs-CZ')}</p>
+          </div>
+          <div style="text-align: center;">
+            <a href="${taskUrl}" class="button">Zobrazit v CRM</a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  return await sendMailtrapEmail(emailData);
+};
+
+// Odeslat email upozornění na deadline projektu (den před)
+const sendProjectDeadlineEmail = async ({ to, userName, projectName, projectType, clientName, deadline, brief }) => {
+  const projectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/projects`;
+  
+  const typeLabels = {
+    web: 'Web',
+    social_media: 'Sociální sítě',
+    campaign: 'Kampaň',
+    video: 'Natáčení',
+    photography: 'Focení',
+    graphics: 'Grafika'
+  };
+  
+  const emailData = {
+    from: {
+      email: process.env.EMAIL_FROM || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
+    to: [{ email: to }],
+    subject: `⏰ Deadline projektu zítra: ${projectName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+          }
+          .content {
+            background: #ffffff;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+          }
+          .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #856404;
+          }
+          .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 style="margin: 0;">⏰ Deadline projektu zítra!</h1>
+        </div>
+        <div class="content">
+          <p>Ahoj <strong>${userName}</strong>,</p>
+          <p>Připomínáme, že <strong>zítra</strong> je deadline pro následující projekt:</p>
+          <div class="warning">
+            <h3 style="margin-top: 0;">📊 ${projectName}</h3>
+            <p><strong>Typ:</strong> ${typeLabels[projectType] || projectType}</p>
+            <p><strong>Klient:</strong> ${clientName || 'Nezadáno'}</p>
+            <p><strong>Deadline:</strong> ${new Date(deadline).toLocaleDateString('cs-CZ')}</p>
+            ${brief ? `<p><strong>Brief:</strong> ${brief}</p>` : ''}
+          </div>
+          <div style="text-align: center;">
+            <a href="${projectUrl}" class="button">Zobrazit v CRM</a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  return await sendMailtrapEmail(emailData);
+};
+
+// Odeslat email o vygenerované faktuře
+const sendInvoiceGeneratedEmail = async ({ to, managerName, clientName, amount, invoiceId, dueDate }) => {
+  const invoiceUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/invoices`;
+  
+  const emailData = {
+    from: {
+      email: process.env.EMAIL_FROM || 'info@nevymyslis.cz',
+      name: process.env.EMAIL_FROM_NAME || 'Nevymyslíš CRM'
+    },
+    to: [{ email: to }],
+    subject: `💰 Automaticky vygenerovaná faktura - ${clientName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+          }
+          .content {
+            background: #ffffff;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+          }
+          .info {
+            background: #e7f3ff;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 style="margin: 0;">💰 Nová pravidelná faktura</h1>
+        </div>
+        <div class="content">
+          <p>Ahoj <strong>${managerName}</strong>,</p>
+          <p>Byla automaticky vygenerována pravidelná faktura:</p>
+          <div class="info">
+            <h3 style="margin-top: 0;">📄 Detail faktury:</h3>
+            <p><strong>Klient:</strong> ${clientName}</p>
+            <p><strong>Částka:</strong> ${amount} Kč</p>
+            <p><strong>Splatnost:</strong> ${new Date(dueDate).toLocaleDateString('cs-CZ')}</p>
+            <p><strong>ID faktury:</strong> #${invoiceId}</p>
+          </div>
+          <p>Fakturu můžete stáhnout a poslat klientovi v sekci Faktury.</p>
+          <div style="text-align: center;">
+            <a href="${invoiceUrl}" class="button">Zobrazit faktury</a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  return await sendMailtrapEmail(emailData);
+};
+
 module.exports = {
   sendPasswordResetEmail,
   sendWelcomeEmail,
-  sendNewTaskEmail
+  sendNewTaskEmail,
+  sendTaskDeadlineEmail,
+  sendProjectDeadlineEmail,
+  sendInvoiceGeneratedEmail
 };
