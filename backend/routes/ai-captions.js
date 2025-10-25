@@ -3,18 +3,31 @@ const router = express.Router();
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
 
-// Cohere API
+// Cohere Chat API (nová verze)
 const generateCaption = async (prompt, clientHistory = '') => {
   if (!process.env.COHERE_API_KEY) {
     throw new Error('COHERE_API_KEY není nastaven v .env');
   }
 
-  const contextPrompt = clientHistory 
-    ? `Na základě předchozích příspěvků klienta:\n${clientHistory}\n\n${prompt}`
-    : prompt;
+  // Vytvořit zprávy pro Chat API
+  const messages = [];
+  
+  // Přidat historii jako systémovou zprávu pokud existuje
+  if (clientHistory) {
+    messages.push({
+      role: 'SYSTEM',
+      message: `Kontext předchozích příspěvků klienta:\n${clientHistory}`
+    });
+  }
+  
+  // Přidat hlavní prompt
+  messages.push({
+    role: 'USER',
+    message: prompt
+  });
 
   try {
-    const response = await fetch('https://api.cohere.ai/v1/generate', {
+    const response = await fetch('https://api.cohere.ai/v1/chat', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
@@ -22,12 +35,13 @@ const generateCaption = async (prompt, clientHistory = '') => {
       },
       body: JSON.stringify({
         model: 'command',
-        prompt: contextPrompt,
-        max_tokens: 300,
+        message: prompt,
+        chat_history: clientHistory ? [
+          { role: 'SYSTEM', message: `Kontext: ${clientHistory}` }
+        ] : [],
         temperature: 0.8,
-        k: 0,
-        stop_sequences: [],
-        return_likelihoods: 'NONE'
+        max_tokens: 300,
+        preamble: 'Jsi expert na tvorbu poutavého obsahu pro sociální sítě. Píšeš v češtině, používáš emojis a vytváříš texty, které zaujmou a přesvědčí.'
       })
     });
 
@@ -37,7 +51,7 @@ const generateCaption = async (prompt, clientHistory = '') => {
     }
 
     const data = await response.json();
-    return data.generations[0].text.trim();
+    return data.text.trim();
   } catch (error) {
     console.error('Chyba při volání Cohere API:', error);
     throw error;
