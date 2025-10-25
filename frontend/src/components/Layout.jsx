@@ -78,8 +78,8 @@ const Layout = ({ children }) => {
               </div>
             </div>
             
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-1">
+            {/* Desktop Navigation - Kompaktní */}
+            <div className="hidden lg:flex items-center space-x-0.5">
               {navigation.map((item) => {
                 // Skrýt manager-only stránky pro běžné uživatele
                 if (item.managerOnly && user?.role !== 'manager') {
@@ -90,57 +90,59 @@ const Layout = ({ children }) => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
                       isActive(item.href)
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }`}
+                    title={item.name}
                   >
-                    <Icon size={18} />
-                    <span>{item.name}</span>
+                    <Icon size={16} />
+                    <span className="hidden xl:inline">{item.name}</span>
                   </Link>
                 );
               })}
             </div>
 
-            {/* Right Side - Email & User */}
-            <div className="hidden md:flex items-center space-x-3">
+            {/* Right Side - Email & User - Kompaktní */}
+            <div className="hidden lg:flex items-center space-x-2">
               {/* Email Button */}
               <a
                 href="https://mail.zoho.eu"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
+                className="flex items-center space-x-1 px-2 py-1.5 rounded-md text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
+                title="Email"
               >
-                <Mail size={18} />
-                <span>Email</span>
+                <Mail size={16} />
+                <span className="hidden xl:inline">Email</span>
               </a>
 
-              <div className="h-8 w-px bg-gray-300"></div>
+              <div className="h-6 w-px bg-gray-300"></div>
 
-              {/* User Info */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-orange-400 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+              {/* User Info - Kompaktní */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1.5">
+                  <div className="w-7 h-7 bg-gradient-to-br from-purple-400 to-orange-400 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
                     {getUserInitials()}
                   </div>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                    <p className="text-xs text-gray-500">{user?.role === 'manager' ? 'Manažer' : 'Pracovník'}</p>
+                  <div className="text-left hidden xl:block">
+                    <p className="text-xs font-medium text-gray-900">{user?.name}</p>
+                    <p className="text-[10px] text-gray-500 -mt-0.5">{user?.role === 'manager' ? 'Manažer' : 'Pracovník'}</p>
                   </div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
+                  className="p-1.5 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
                   title="Odhlásit se"
                 >
-                  <LogOut size={20} />
+                  <LogOut size={16} />
                 </button>
               </div>
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden flex items-center">
+            <div className="lg:hidden flex items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
@@ -153,7 +155,7 @@ const Layout = ({ children }) => {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="lg:hidden border-t border-gray-200 bg-white">
             {/* User Info Mobile */}
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center space-x-3">
