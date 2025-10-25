@@ -28,7 +28,7 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState({
-    crm: false,
+    tools: false,
     finance: false,
     system: false
   });
@@ -38,23 +38,23 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  // Hlavní jednotlivé záložky
+  // Hlavní jednotlivé záložky (nejdůležitější zleva)
   const mainNav = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, managerOnly: true },
-    { name: 'Kalendář', href: '/calendar', icon: Calendar },
-    { name: 'AI Popisky', href: '/ai-captions', icon: Sparkles },
-    { name: 'Google Drive', href: '/google-drive', icon: FolderOpen },
+    { name: 'Klienti', href: '/clients', icon: Users },
+    { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
+    { name: 'Projekty', href: '/projects', icon: Briefcase },
   ];
 
-  // Dropdown skupiny
+  // Dropdown skupiny (logicky seskupené)
   const dropdownGroups = {
-    crm: {
-      name: 'CRM',
+    tools: {
+      name: 'Nástroje',
       items: [
+        { name: 'Kalendář', href: '/calendar', icon: Calendar },
+        { name: 'AI Popisky', href: '/ai-captions', icon: Sparkles },
+        { name: 'Google Drive', href: '/google-drive', icon: FolderOpen },
         { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
-        { name: 'Klienti', href: '/clients', icon: Users },
-        { name: 'Projekty', href: '/projects', icon: Briefcase },
-        { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
       ]
     },
     finance: {
@@ -88,7 +88,7 @@ const Layout = ({ children }) => {
   // Zavřít dropdown při kliknutí mimo
   React.useEffect(() => {
     const handleClickOutside = () => {
-      setDropdownOpen({ crm: false, finance: false, system: false });
+      setDropdownOpen({ tools: false, finance: false, system: false });
     };
     
     if (Object.values(dropdownOpen).some(v => v)) {
