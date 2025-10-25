@@ -85,10 +85,11 @@ const migrateToV3 = async () => {
       CREATE TABLE IF NOT EXISTS ai_post_history (
         id SERIAL PRIMARY KEY,
         client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+        platform VARCHAR(50),
         post_type VARCHAR(100),
         topic TEXT,
         prompt TEXT,
-        generated_caption TEXT,
+        generated_text TEXT,
         used BOOLEAN DEFAULT FALSE,
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -98,20 +99,51 @@ const migrateToV3 = async () => {
     `);
     console.log('✅ Tabulka ai_post_history vytvořena');
     
-    // Přidat sloupec prompt pokud už tabulka existuje
-    console.log('🔧 Kontrola sloupce prompt...');
+    // Opravit existující tabulku - přidat chybějící sloupce
+    console.log('🔧 Kontrola/oprava sloupců ai_post_history...');
     await pool.query(`
       DO $$ 
       BEGIN
+        -- Přidat prompt pokud chybí
         IF NOT EXISTS (
           SELECT 1 FROM information_schema.columns 
           WHERE table_name = 'ai_post_history' AND column_name = 'prompt'
         ) THEN
           ALTER TABLE ai_post_history ADD COLUMN prompt TEXT;
         END IF;
+        
+        -- Přidat platform pokud chybí
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'ai_post_history' AND column_name = 'platform'
+        ) THEN
+          ALTER TABLE ai_post_history ADD COLUMN platform VARCHAR(50);
+        END IF;
+        
+        -- Přejmenovat generated_caption na generated_text pokud existuje
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'ai_post_history' AND column_name = 'generated_caption'
+        ) AND NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'ai_post_history' AND column_name = 'generated_text'
+        ) THEN
+          ALTER TABLE ai_post_history RENAME COLUMN generated_caption TO generated_text;
+        END IF;
+        
+        -- Přidat generated_text pokud chybí (a neexistuje generated_caption)
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'ai_post_history' AND column_name = 'generated_text'
+        ) AND NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'ai_post_history' AND column_name = 'generated_caption'
+        ) THEN
+          ALTER TABLE ai_post_history ADD COLUMN generated_text TEXT;
+        END IF;
       END $$;
     `);
-    console.log('✅ Sloupec prompt zkontrolován');
+    console.log('✅ Sloupce ai_post_history zkontrolovány a opraveny');
 
     // 3. CENÍK A NABÍDKY
     console.log('💰 Vytváření tabulky service_pricing...');
