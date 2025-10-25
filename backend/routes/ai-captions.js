@@ -34,7 +34,7 @@ const generateCaption = async (prompt, clientHistory = '') => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'command-r',
+        model: 'command-r-plus',
         message: prompt,
         chat_history: clientHistory ? [
           { role: 'SYSTEM', message: `Kontext: ${clientHistory}` }

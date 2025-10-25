@@ -167,9 +167,10 @@ Přidáno do menu:
 - `DELETE /api/ai-captions/history/:id` - Smazat položku
 
 **AI Engine:**
-- **Cohere API** (command model)
+- **Cohere Chat API** (command-r-plus model)
 - Učení z historie klienta
 - Kontextové generování
+- Podpora češtiny
 
 **Frontend:**
 - 5 platforem (Instagram, Facebook, LinkedIn, TikTok, Twitter)

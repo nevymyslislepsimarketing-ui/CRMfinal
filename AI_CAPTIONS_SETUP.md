@@ -214,15 +214,17 @@ const prompt = `Napiš poutavý text pro ${platform}...
 
 ### Změnit AI model:
 
-Cohere nabízí různé modely:
-- `command` - Výchozí (nejlepší poměr cena/výkon)
-- `command-light` - Rychlejší, levnější
-- `command-nightly` - Nejnovější (experimentální)
+Cohere nabízí různé modely (aktualizováno 2025):
+- `command-r-plus` - **Výchozí** (nejlepší kvalita, doporučený)
+- `command-r7b-12-2024` - Rychlejší, efektivnější
+- `command-light` - Nejrychlejší, nejlevnější
+
+⚠️ **Poznámka:** Modely `command`, `command-r` byly odstraněny 15.9.2025
 
 Změna v `backend/routes/ai-captions.js`:
 ```javascript
 body: JSON.stringify({
-  model: 'command-light', // Změnit zde
+  model: 'command-r-plus', // Aktuální doporučený model
   ...
 })
 ```
