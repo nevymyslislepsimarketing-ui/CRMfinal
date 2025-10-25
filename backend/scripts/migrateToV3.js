@@ -223,15 +223,16 @@ const migrateToV3 = async () => {
     }
 
     console.log('🎉 Migrace na v3.0.0 úspěšně dokončena!');
-    process.exit(0);
     
   } catch (error) {
     console.error('❌ Chyba při migraci:', error);
     console.error('Stack trace:', error.stack);
-    process.exit(1);
-  } finally {
     await pool.end();
+    process.exit(1);
   }
+  
+  await pool.end();
+  process.exit(0);
 };
 
 migrateToV3();

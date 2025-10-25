@@ -210,14 +210,15 @@ const seedPricing = async () => {
     }
 
     console.log(`🎉 Seed dokončen! Vloženo ${pricingData.length} služeb.`);
-    process.exit(0);
     
   } catch (error) {
     console.error('❌ Chyba při seed:', error);
-    process.exit(1);
-  } finally {
     await pool.end();
+    process.exit(1);
   }
+  
+  await pool.end();
+  process.exit(0);
 };
 
 seedPricing();
