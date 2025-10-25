@@ -5,8 +5,8 @@ services:
     env: node
     region: frankfurt  # Nebo oregon, singapore podle preferencí
     plan: free
-    buildCommand: cd backend && npm install && npm run build
-    startCommand: cd backend && npm start
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && bash scripts/start-production.sh
     envVars:
       - key: NODE_ENV
         value: production
