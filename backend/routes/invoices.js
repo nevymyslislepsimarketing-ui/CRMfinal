@@ -282,13 +282,43 @@ router.get('/:id/html', async (req, res) => {
     // Generovat QR kód pro platbu (SPAYD formát pro české platby)
     const generatePaymentQR = async () => {
       try {
-        // Formátovat číslo účtu (odstranit lomítko a mezery)
-        const accountNumber = (companySettings.bank_account || '').replace(/[\s\/]/g, '');
+        const bankAccount = companySettings.bank_account || '';
+        
+        // Pokud není číslo účtu, vrátit null
+        if (!bankAccount || bankAccount === 'Neuvedeno') {
+          console.log('⚠️  Číslo účtu není nastaveno, QR kód nebude vygenerován');
+          return null;
+        }
+        
+        // Parsovat číslo účtu ve formátu: [předčíslí-]číslo/kódbanky
+        const accountMatch = bankAccount.match(/^(?:(\d+)-)?(\d+)\/(\d{4})$/);
+        
+        if (!accountMatch) {
+          console.error('❌ Nevalidní formát čísla účtu:', bankAccount);
+          console.log('   Očekávaný formát: 123456789/0100 nebo 123456-987654321/0100');
+          return null;
+        }
+        
+        const [, prefix = '', accountNumber, bankCode] = accountMatch;
+        
+        // Převést na IBAN formát pro SPAYD
+        // Předčíslí: doplnit zleva na 6 číslic
+        // Číslo účtu: doplnit zleva na 10 číslic
+        const paddedPrefix = prefix.padStart(6, '0');
+        const paddedAccount = accountNumber.padStart(10, '0');
+        const iban = `CZ${bankCode}${paddedPrefix}${paddedAccount}`;
+        
+        console.log('🔍 QR kód - Převod čísla účtu:');
+        console.log('   Vstup:', bankAccount);
+        console.log('   IBAN:', iban);
+        
         const amount = parseFloat(invoice.amount).toFixed(2);
         const variableSymbol = invoice.invoice_number.replace(/[^0-9]/g, '');
         
-        // SPAYD formát (Short Payment Descriptor)
-        const spayd = `SPD*1.0*ACC:${accountNumber}*AM:${amount}*CC:CZK*VS:${variableSymbol}*MSG:Faktura ${invoice.invoice_number}`;
+        // SPAYD formát (Short Payment Descriptor) s IBAN
+        const spayd = `SPD*1.0*ACC:${iban}*AM:${amount}*CC:CZK*VS:${variableSymbol}*MSG:Faktura ${invoice.invoice_number}`;
+        
+        console.log('   SPAYD:', spayd);
         
         // Generovat QR kód jako base64
         const qrCodeDataURL = await QRCode.toDataURL(spayd, {
@@ -302,7 +332,7 @@ router.get('/:id/html', async (req, res) => {
         
         return qrCodeDataURL;
       } catch (error) {
-        console.error('Chyba při generování QR kódu:', error);
+        console.error('❌ Chyba při generování QR kódu:', error);
         return null;
       }
     };
