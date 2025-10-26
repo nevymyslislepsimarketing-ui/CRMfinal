@@ -301,22 +301,23 @@ router.get('/:id/html', async (req, res) => {
         
         const [, prefix = '', accountNumber, bankCode] = accountMatch;
         
-        // Převést na IBAN formát pro SPAYD
-        // Předčíslí: doplnit zleva na 6 číslic
-        // Číslo účtu: doplnit zleva na 10 číslic
-        const paddedPrefix = prefix.padStart(6, '0');
+        // Použít český formát účtu pro SPAYD (funguje lépe než IBAN)
+        // Formát: kód banky + předčíslí (pokud je) + číslo účtu
+        // Podle SPAYD spec: ACC:CZ-BBBB-PPPPPPNNNNNNNNNN
+        const paddedPrefix = prefix ? prefix.padStart(6, '0') : '000000';
         const paddedAccount = accountNumber.padStart(10, '0');
-        const iban = `CZ${bankCode}${paddedPrefix}${paddedAccount}`;
+        const czechAccount = `CZ-${bankCode}-${paddedPrefix}${paddedAccount}`;
         
         console.log('🔍 QR kód - Převod čísla účtu:');
         console.log('   Vstup:', bankAccount);
-        console.log('   IBAN:', iban);
+        console.log('   Formát pro SPAYD:', czechAccount);
         
         const amount = parseFloat(invoice.amount).toFixed(2);
-        const variableSymbol = invoice.invoice_number.replace(/[^0-9]/g, '');
+        // Variabilní symbol nepoužívat (příliš dlouhý)
         
-        // SPAYD formát (Short Payment Descriptor) s IBAN
-        const spayd = `SPD*1.0*ACC:${iban}*AM:${amount}*CC:CZK*VS:${variableSymbol}*MSG:Faktura ${invoice.invoice_number}`;
+        // SPAYD formát (Short Payment Descriptor) s českým číslem účtu
+        // Bez variabilního symbolu - poznámka bude obsahovat číslo faktury
+        const spayd = `SPD*1.0*ACC:${czechAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.invoice_number}`;
         
         console.log('   SPAYD:', spayd);
         
