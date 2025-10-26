@@ -82,7 +82,7 @@ router.get('/:id', async (req, res) => {
 
 // Vytvořit novou fakturu
 router.post('/', async (req, res) => {
-  const { client_id, amount, description, issued_at, due_date, paid = false } = req.body;
+  const { client_id, amount, description, issued_at, due_date, paid = false, manager_id } = req.body;
 
   try {
     if (!client_id || !amount || !description || !issued_at || !due_date) {
@@ -113,8 +113,8 @@ router.post('/', async (req, res) => {
     const invoice_number = `${prefix}${String(sequenceNumber).padStart(5, '0')}`;
 
     const result = await pool.query(
-      'INSERT INTO invoices (invoice_number, client_id, amount, description, issued_at, due_date, paid, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [invoice_number, client_id, amount, description, issued_at, due_date, paid, req.user.id]
+      'INSERT INTO invoices (invoice_number, client_id, amount, description, issued_at, due_date, paid, created_by, manager_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [invoice_number, client_id, amount, description, issued_at, due_date, paid, req.user.id, manager_id || null]
     );
 
     res.status(201).json({
@@ -133,7 +133,7 @@ router.post('/', async (req, res) => {
 // Aktualizovat fakturu
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { client_id, amount, description, due_date, paid } = req.body;
+  const { client_id, amount, description, due_date, paid, manager_id } = req.body;
 
   try {
     if (!description) {
@@ -142,8 +142,8 @@ router.put('/:id', async (req, res) => {
 
     // Číslo faktury a datum vystavení se nemění po vytvoření
     const result = await pool.query(
-      'UPDATE invoices SET client_id = $1, amount = $2, description = $3, due_date = $4, paid = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *',
-      [client_id, amount, description, due_date, paid, id]
+      'UPDATE invoices SET client_id = $1, amount = $2, description = $3, due_date = $4, paid = $5, manager_id = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING *',
+      [client_id, amount, description, due_date, paid, manager_id || null, id]
     );
 
     if (result.rows.length === 0) {

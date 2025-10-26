@@ -700,6 +700,23 @@ const Invoices = () => {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="label">Vystavitel faktury (Manažer)</label>
+                    <select
+                      value={formData.manager_id}
+                      onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="">-- Vyberte manažera --</option>
+                      {allUsers.filter(u => u.role === 'manager').map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Z fakturačních údajů tohoto manažera se vygeneruje faktura</p>
+                  </div>
+
                   <div className="flex items-center">
                     <input
                       type="checkbox"

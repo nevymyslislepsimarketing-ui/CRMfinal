@@ -35,7 +35,12 @@ Přidává fakturační údaje do tabulky users:
 - billing_email, billing_phone, billing_bank_account
 - manager_id do clients (pro přiřazení vystavitele)
 
-### 6️⃣ **seedPricing.js**
+### 6️⃣ **addManagerToInvoices.js**
+Přidává manager_id do tabulky invoices:
+- manager_id - reference na uživatele (vystavitele faktury)
+- Umožňuje nastavit vystavitele i u jednorázových faktur
+
+### 7️⃣ **seedPricing.js**
 Naplní databázi službami z ceníku:
 - Social Media balíčky (S, M, L, XL)
 - Rozšíření platforem
@@ -134,15 +139,26 @@ fetch('/api/setup/step5-billing', {
 
 // Počkejte 5s a pak:
 
-// Krok 6: Seed služeb
-fetch('/api/setup/step6-seed', {
+// Krok 6: Manager invoices
+fetch('/api/setup/step6-manager', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ auth_key: authKey })
+})
+.then(r => r.json())
+.then(data => console.log('6️⃣ Manager invoices:', data));
+
+// Počkejte 5s a pak:
+
+// Krok 7: Seed služeb
+fetch('/api/setup/step7-seed', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ auth_key: authKey })
 })
 .then(r => r.json())
 .then(data => {
-  console.log('6️⃣ Seed:', data);
+  console.log('7️⃣ Seed:', data);
   if (data.success) alert('🎉 Všechny migrace dokončeny!');
 });
 ```
@@ -152,11 +168,11 @@ fetch('/api/setup/step6-seed', {
 ```javascript
 const runMigrations = async () => {
   const authKey = 'nevymyslis-setup-2025';
-  const steps = ['step1-migrate', 'step2-columns', 'step3-revenue', 'step4-invoice-splits', 'step5-billing', 'step6-seed'];
-  const labels = ['Základní tabulky', 'Sloupce', 'Revenue splits', 'Invoice splits', 'Billing users', 'Seed služeb'];
+  const steps = ['step1-migrate', 'step2-columns', 'step3-revenue', 'step4-invoice-splits', 'step5-billing', 'step6-manager', 'step7-seed'];
+  const labels = ['Základní tabulky', 'Sloupce', 'Revenue splits', 'Invoice splits', 'Billing users', 'Manager invoices', 'Seed služeb'];
   
   for (let i = 0; i < steps.length; i++) {
-    console.log(`\n🔄 ${i+1}/6: ${labels[i]}...`);
+    console.log(`\n🔄 ${i+1}/7: ${labels[i]}...`);
     
     try {
       const response = await fetch(`/api/setup/${steps[i]}`, {
@@ -195,6 +211,7 @@ node scripts/addMissingColumns.js
 node scripts/addRevenueSplits.js
 node scripts/addInvoiceSplits.js
 node scripts/addBillingToUsers.js
+node scripts/addManagerToInvoices.js
 node scripts/seedPricing.js
 ```
 

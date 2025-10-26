@@ -83,7 +83,7 @@ router.post('/run-migrations', async (req, res) => {
     outputs.invoice_splits = invoiceSplitsOutput;
 
     // 5. Přidat fakturační údaje do users
-    console.log('💼 Step 5/6: Running addBillingToUsers.js...');
+    console.log('💼 Step 5/7: Running addBillingToUsers.js...');
     const { stdout: billingOutput, stderr: billingError } = await execPromise(
       'node scripts/addBillingToUsers.js',
       { cwd: __dirname + '/..', timeout: 60000 }
@@ -91,9 +91,19 @@ router.post('/run-migrations', async (req, res) => {
     console.log(billingOutput);
     if (billingError) console.warn('Billing warnings:', billingError);
     outputs.billing_users = billingOutput;
+
+    // 6. Přidat manager_id do invoices
+    console.log('📄 Step 6/7: Running addManagerToInvoices.js...');
+    const { stdout: managerInvoicesOutput, stderr: managerInvoicesError } = await execPromise(
+      'node scripts/addManagerToInvoices.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(managerInvoicesOutput);
+    if (managerInvoicesError) console.warn('Manager invoices warnings:', managerInvoicesError);
+    outputs.manager_invoices = managerInvoicesOutput;
     
-    // 6. Seed ceníku
-    console.log('🌱 Step 6/6: Running seedPricing.js...');
+    // 7. Seed ceníku
+    console.log('🌱 Step 7/7: Running seedPricing.js...');
     try {
       const { stdout: seedOutput, stderr: seedError } = await execPromise(
         'node scripts/seedPricing.js',
@@ -120,7 +130,8 @@ router.post('/run-migrations', async (req, res) => {
         '3_revenue_splits': outputs.revenue_splits,
         '4_invoice_splits': outputs.invoice_splits,
         '5_billing_users': outputs.billing_users,
-        '6_seed': outputs.seed
+        '6_manager_invoices': outputs.manager_invoices,
+        '7_seed': outputs.seed
       }
     });
     
@@ -274,7 +285,26 @@ router.post('/step5-billing', async (req, res) => {
   }
 });
 
-router.post('/step6-seed', async (req, res) => {
+router.post('/step6-manager', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('📄 Running addManagerToInvoices.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/addManagerToInvoices.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+router.post('/step7-seed', async (req, res) => {
   if (!checkAuth(req, res)) return;
   
   try {
