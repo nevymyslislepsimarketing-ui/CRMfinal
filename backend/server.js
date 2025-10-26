@@ -19,6 +19,7 @@ const aiCaptionsRoutes = require('./routes/ai-captions');
 const googleDriveRoutes = require('./routes/google-drive');
 const setupRoutes = require('./routes/setup');
 const revenueSplitsRoutes = require('./routes/revenue-splits');
+const invoiceSplitsRoutes = require('./routes/invoice-splits');
 
 // CRON služba pro automatické notifikace a faktury
 const cronService = require('./services/cronService');
@@ -92,6 +93,7 @@ app.use('/api/ai-captions', aiCaptionsRoutes);
 app.use('/api/google-drive', googleDriveRoutes);
 app.use('/api/setup', setupRoutes);
 app.use('/api/revenue-splits', revenueSplitsRoutes);
+app.use('/api/invoice-splits', invoiceSplitsRoutes);
 
 // 404 handler
 app.use((req, res) => {

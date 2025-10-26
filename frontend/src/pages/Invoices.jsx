@@ -192,9 +192,18 @@ const Invoices = () => {
 
         // Uložit rozdělení příjmů pokud jsou
         if (!editingInvoice && revenueSplits.length > 0) {
-          // TODO: Implementovat ukládání rozdělení pro jednorázovou fakturu
-          // Možná potřebujeme novou tabulku invoice_splits
-          console.log('Revenue splits pro jednorázovou fakturu:', revenueSplits);
+          const validSplits = revenueSplits.filter(s => s.amount > 0);
+          if (validSplits.length > 0) {
+            try {
+              await api.post(`/invoice-splits/invoice/${invoiceId}`, { 
+                splits: validSplits 
+              });
+              console.log('✅ Rozdělení faktury uloženo:', validSplits.length, 'pracovníků');
+            } catch (splitError) {
+              console.error('⚠️ Chyba při ukládání rozdělení faktury:', splitError);
+              // Pokračujeme i když rozdělení selže
+            }
+          }
         }
 
         fetchInvoices();

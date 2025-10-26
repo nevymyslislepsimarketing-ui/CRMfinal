@@ -38,7 +38,7 @@ router.post('/run-migrations', async (req, res) => {
     const outputs = {};
     
     // 1. Základní migrace na v3 (tabulky projects, ai_post_history, atd.)
-    console.log('📊 Step 1/4: Running migrateToV3.js...');
+    console.log('📊 Step 1/5: Running migrateToV3.js...');
     try {
       const { stdout: migrateOutput, stderr: migrateError } = await execPromise(
         'node scripts/migrateToV3.js',
@@ -53,7 +53,7 @@ router.post('/run-migrations', async (req, res) => {
     }
     
     // 2. Přidat chybějící sloupce (assigned_to, prompt, platform, generated_text, google_drive_link)
-    console.log('🔧 Step 2/4: Running addMissingColumns.js...');
+    console.log('🔧 Step 2/5: Running addMissingColumns.js...');
     const { stdout: columnsOutput, stderr: columnsError } = await execPromise(
       'node scripts/addMissingColumns.js',
       { cwd: __dirname + '/..', timeout: 60000 }
@@ -62,8 +62,8 @@ router.post('/run-migrations', async (req, res) => {
     if (columnsError) console.warn('Columns warnings:', columnsError);
     outputs.columns = columnsOutput;
     
-    // 3. Vytvořit tabulku pro rozdělení příjmů
-    console.log('💰 Step 3/4: Running addRevenueSplits.js...');
+    // 3. Vytvořit tabulku pro rozdělení příjmů (pravidelné faktury)
+    console.log('💰 Step 3/5: Running addRevenueSplits.js...');
     const { stdout: splitsOutput, stderr: splitsError } = await execPromise(
       'node scripts/addRevenueSplits.js',
       { cwd: __dirname + '/..', timeout: 60000 }
@@ -71,9 +71,19 @@ router.post('/run-migrations', async (req, res) => {
     console.log(splitsOutput);
     if (splitsError) console.warn('Splits warnings:', splitsError);
     outputs.revenue_splits = splitsOutput;
+
+    // 4. Vytvořit tabulku pro rozdělení jednorázových faktur
+    console.log('📄 Step 4/5: Running addInvoiceSplits.js...');
+    const { stdout: invoiceSplitsOutput, stderr: invoiceSplitsError } = await execPromise(
+      'node scripts/addInvoiceSplits.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(invoiceSplitsOutput);
+    if (invoiceSplitsError) console.warn('Invoice splits warnings:', invoiceSplitsError);
+    outputs.invoice_splits = invoiceSplitsOutput;
     
-    // 4. Seed ceníku
-    console.log('🌱 Step 4/4: Running seedPricing.js...');
+    // 5. Seed ceníku
+    console.log('🌱 Step 5/5: Running seedPricing.js...');
     try {
       const { stdout: seedOutput, stderr: seedError } = await execPromise(
         'node scripts/seedPricing.js',
@@ -98,7 +108,8 @@ router.post('/run-migrations', async (req, res) => {
         '1_migrate': outputs.migrate,
         '2_columns': outputs.columns,
         '3_revenue_splits': outputs.revenue_splits,
-        '4_seed': outputs.seed
+        '4_invoice_splits': outputs.invoice_splits,
+        '5_seed': outputs.seed
       }
     });
     
@@ -214,7 +225,26 @@ router.post('/step3-revenue', async (req, res) => {
   }
 });
 
-router.post('/step4-seed', async (req, res) => {
+router.post('/step4-invoice-splits', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('📄 Running addInvoiceSplits.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/addInvoiceSplits.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+router.post('/step5-seed', async (req, res) => {
   if (!checkAuth(req, res)) return;
   
   try {
