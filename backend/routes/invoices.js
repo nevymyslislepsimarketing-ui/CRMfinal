@@ -233,12 +233,29 @@ router.get('/:id/html', async (req, res) => {
     // Získat fakturační údaje dodavatele
     // Priorita: 1. manager_id z invoices, 2. manager_id z clients, 3. created_by, 4. aktuální user
     const managerId = invoice.manager_id || invoice.client_manager_id || invoice.created_by || req.user.id;
+    
+    console.log('🔍 DEBUG - Generování PDF faktury:');
+    console.log('  Invoice ID:', invoice.id);
+    console.log('  Invoice manager_id:', invoice.manager_id);
+    console.log('  Client manager_id:', invoice.client_manager_id);
+    console.log('  Created by:', invoice.created_by);
+    console.log('  Selected manager_id:', managerId);
+    
     const settingsResult = await pool.query(
-      'SELECT billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account FROM users WHERE id = $1',
+      'SELECT id, name, billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account FROM users WHERE id = $1',
       [managerId]
     );
 
     const managerBilling = settingsResult.rows[0];
+    
+    console.log('  Manager billing data:', {
+      user_id: managerBilling?.id,
+      user_name: managerBilling?.name,
+      billing_name: managerBilling?.billing_name,
+      has_ico: !!managerBilling?.billing_ico,
+      has_account: !!managerBilling?.billing_bank_account
+    });
+    
     const companySettings = {
       company_name: managerBilling?.billing_name || 'Nevymyslíš s.r.o.',
       ico: managerBilling?.billing_ico || 'Neuvedeno',

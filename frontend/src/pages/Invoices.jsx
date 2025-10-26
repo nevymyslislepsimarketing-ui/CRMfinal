@@ -248,6 +248,7 @@ const Invoices = () => {
           ...formData,
           client_id: parseInt(formData.client_id),
           amount: parseFloat(formData.amount),
+          manager_id: formData.manager_id ? parseInt(formData.manager_id) : null,
         };
 
         let invoiceId;
