@@ -31,6 +31,9 @@ const Clients = () => {
     dic: '',
     billing_address: '',
     google_drive_link: '',
+    monthly_recurring_amount: '',
+    invoice_day: '',
+    invoice_due_days: '',
   });
   const [credentialFormData, setCredentialFormData] = useState({
     platform: '',
@@ -69,6 +72,9 @@ const Clients = () => {
         dic: client.dic || '',
         billing_address: client.billing_address || '',
         google_drive_link: client.google_drive_link || '',
+        monthly_recurring_amount: client.monthly_recurring_amount || '',
+        invoice_day: client.invoice_day || '',
+        invoice_due_days: client.invoice_due_days || '',
       });
     } else {
       setEditingClient(null);
@@ -83,6 +89,9 @@ const Clients = () => {
         dic: '',
         billing_address: '',
         google_drive_link: '',
+        monthly_recurring_amount: '',
+        invoice_day: '',
+        invoice_due_days: '',
       });
     }
     setShowModal(true);
@@ -101,6 +110,10 @@ const Clients = () => {
       ico: '',
       dic: '',
       billing_address: '',
+      google_drive_link: '',
+      monthly_recurring_amount: '',
+      invoice_day: '',
+      invoice_due_days: '',
     });
   };
 
@@ -566,6 +579,55 @@ const Clients = () => {
                       rows={3}
                       placeholder="Ulice 123, 110 00 Praha 1"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pravidelná fakturace */}
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h3 className="font-semibold text-gray-900 mb-4">📅 Pravidelná měsíční fakturace</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="label">Měsíční částka (Kč)</label>
+                    <input
+                      type="number"
+                      value={formData.monthly_recurring_amount}
+                      onChange={(e) => setFormData({ ...formData, monthly_recurring_amount: e.target.value })}
+                      className="input-field"
+                      placeholder="0"
+                      min="0"
+                      step="100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Pokud je 0, pravidelná fakturace není aktivní</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Den vystavení faktury</label>
+                      <input
+                        type="number"
+                        value={formData.invoice_day}
+                        onChange={(e) => setFormData({ ...formData, invoice_day: e.target.value })}
+                        className="input-field"
+                        placeholder="1"
+                        min="1"
+                        max="28"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">1-28 den v měsíci</p>
+                    </div>
+                    <div>
+                      <label className="label">Splatnost (dní)</label>
+                      <input
+                        type="number"
+                        value={formData.invoice_due_days}
+                        onChange={(e) => setFormData({ ...formData, invoice_due_days: e.target.value })}
+                        className="input-field"
+                        placeholder="14"
+                        min="0"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Počet dní do splatnosti</p>
+                    </div>
                   </div>
                 </div>
               </div>
