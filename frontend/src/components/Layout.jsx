@@ -29,6 +29,7 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState({
+    clients: false,
     tools: false,
     finance: false,
     system: false
@@ -42,19 +43,25 @@ const Layout = ({ children }) => {
   // Hlavní jednotlivé záložky (nejdůležitější zleva)
   const mainNav = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, managerOnly: true },
-    { name: 'Klienti', href: '/clients', icon: Users },
     { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
     { name: 'Projekty', href: '/projects', icon: Briefcase },
   ];
 
   // Dropdown skupiny (logicky seskupené)
   const dropdownGroups = {
+    clients: {
+      name: 'Klienti',
+      icon: Users,
+      items: [
+        { name: 'Naši Klienti', href: '/clients', icon: Users },
+        { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
+      ]
+    },
     tools: {
       name: 'Nástroje',
       items: [
         { name: 'Kalendář', href: '/calendar', icon: Calendar },
         { name: 'AI Popisky', href: '/ai-captions', icon: Sparkles },
-        { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
       ]
     },
     finance: {
@@ -164,6 +171,7 @@ const Layout = ({ children }) => {
                           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                     >
+                      {group.icon && React.createElement(group.icon, { size: 16, className: 'mr-0.5' })}
                       <span>{group.name}</span>
                       <ChevronDown size={12} className={`transition-transform ${dropdownOpen[key] ? 'rotate-180' : ''}`} />
                     </button>
