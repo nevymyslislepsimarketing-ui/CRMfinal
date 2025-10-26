@@ -356,25 +356,36 @@ router.get('/:id/html', async (req, res) => {
         
         const [, prefix = '', accountNumber, bankCode] = accountMatch;
         
-        // Použít přesný český formát účtu jak se zapisuje běžně
-        // [předčíslí-]číslo/kódbanky
-        let czechAccount;
-        if (prefix) {
-          czechAccount = `${prefix}-${accountNumber}/${bankCode}`;
-        } else {
-          czechAccount = `${accountNumber}/${bankCode}`;
+        // Převést na IBAN s kontrolním součtem (pro SPAYD je IBAN preferovaný)
+        // Formát: CZ + kontrolní součet (2 číslice) + kód banky (4) + předčíslí (6) + číslo účtu (10)
+        const paddedPrefix = (prefix || '0').padStart(6, '0');
+        const paddedAccount = accountNumber.padStart(10, '0');
+        
+        // Sestavit BBAN (Basic Bank Account Number)
+        const bban = `${bankCode}${paddedPrefix}${paddedAccount}`;
+        
+        // Vypočítat kontrolní součet pro IBAN
+        // 1. CZ na konec: bban + 'CZ00'
+        // 2. Převést písmena na čísla (C=12, Z=35)
+        // 3. Mod 97
+        // 4. 98 - výsledek
+        const tempIban = bban + '1235' + '00'; // CZ = 12,35
+        let remainder = 0;
+        for (let i = 0; i < tempIban.length; i++) {
+          remainder = (remainder * 10 + parseInt(tempIban[i])) % 97;
         }
+        const checksum = (98 - remainder).toString().padStart(2, '0');
+        const iban = `CZ${checksum}${bban}`;
         
         console.log('🔍 QR kód - Převod čísla účtu:');
         console.log('   Vstup:', bankAccount);
-        console.log('   Formát pro SPAYD:', czechAccount);
         console.log('   Kód banky:', bankCode, '(', getBankName(bankCode), ')');
+        console.log('   IBAN:', iban);
         
         const amount = parseFloat(invoice.amount).toFixed(2);
         
-        // SPAYD formát s českým číslem účtu v původním formátu
-        // Bez variabilního symbolu - číslo faktury bude v poznámce
-        const spayd = `SPD*1.0*ACC:${czechAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.invoice_number}`;
+        // SPAYD formát s IBAN (podle oficiální specifikace)
+        const spayd = `SPD*1.0*ACC:${iban}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.invoice_number}`;
         
         console.log('   SPAYD:', spayd);
         
