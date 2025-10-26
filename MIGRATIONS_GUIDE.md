@@ -29,7 +29,13 @@ Vytváří tabulku pro rozdělení jednorázových faktur:
 - `invoice_splits` - rozdělení příjmů z konkrétních faktur mezi pracovníky
   - invoice_id, user_id, amount, notes
 
-### 5️⃣ **seedPricing.js**
+### 5️⃣ **addBillingToUsers.js**
+Přidává fakturační údaje do tabulky users:
+- billing_name, billing_ico, billing_dic, billing_address
+- billing_email, billing_phone, billing_bank_account
+- manager_id do clients (pro přiřazení vystavitele)
+
+### 6️⃣ **seedPricing.js**
 Naplní databázi službami z ceníku:
 - Social Media balíčky (S, M, L, XL)
 - Rozšíření platforem
@@ -117,15 +123,26 @@ fetch('/api/setup/step4-invoice-splits', {
 
 // Počkejte 5s a pak:
 
-// Krok 5: Seed služeb
-fetch('/api/setup/step5-seed', {
+// Krok 5: Billing users
+fetch('/api/setup/step5-billing', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ auth_key: authKey })
+})
+.then(r => r.json())
+.then(data => console.log('5️⃣ Billing:', data));
+
+// Počkejte 5s a pak:
+
+// Krok 6: Seed služeb
+fetch('/api/setup/step6-seed', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ auth_key: authKey })
 })
 .then(r => r.json())
 .then(data => {
-  console.log('5️⃣ Seed:', data);
+  console.log('6️⃣ Seed:', data);
   if (data.success) alert('🎉 Všechny migrace dokončeny!');
 });
 ```
@@ -135,11 +152,11 @@ fetch('/api/setup/step5-seed', {
 ```javascript
 const runMigrations = async () => {
   const authKey = 'nevymyslis-setup-2025';
-  const steps = ['step1-migrate', 'step2-columns', 'step3-revenue', 'step4-invoice-splits', 'step5-seed'];
-  const labels = ['Základní tabulky', 'Sloupce', 'Revenue splits', 'Invoice splits', 'Seed služeb'];
+  const steps = ['step1-migrate', 'step2-columns', 'step3-revenue', 'step4-invoice-splits', 'step5-billing', 'step6-seed'];
+  const labels = ['Základní tabulky', 'Sloupce', 'Revenue splits', 'Invoice splits', 'Billing users', 'Seed služeb'];
   
   for (let i = 0; i < steps.length; i++) {
-    console.log(`\n🔄 ${i+1}/5: ${labels[i]}...`);
+    console.log(`\n🔄 ${i+1}/6: ${labels[i]}...`);
     
     try {
       const response = await fetch(`/api/setup/${steps[i]}`, {
@@ -177,6 +194,7 @@ node scripts/migrateToV3.js
 node scripts/addMissingColumns.js
 node scripts/addRevenueSplits.js
 node scripts/addInvoiceSplits.js
+node scripts/addBillingToUsers.js
 node scripts/seedPricing.js
 ```
 
