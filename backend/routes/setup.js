@@ -73,7 +73,7 @@ router.post('/run-migrations', async (req, res) => {
     outputs.revenue_splits = splitsOutput;
 
     // 4. Vytvořit tabulku pro rozdělení jednorázových faktur
-    console.log('📄 Step 4/5: Running addInvoiceSplits.js...');
+    console.log('📄 Step 4/6: Running addInvoiceSplits.js...');
     const { stdout: invoiceSplitsOutput, stderr: invoiceSplitsError } = await execPromise(
       'node scripts/addInvoiceSplits.js',
       { cwd: __dirname + '/..', timeout: 60000 }
@@ -81,9 +81,19 @@ router.post('/run-migrations', async (req, res) => {
     console.log(invoiceSplitsOutput);
     if (invoiceSplitsError) console.warn('Invoice splits warnings:', invoiceSplitsError);
     outputs.invoice_splits = invoiceSplitsOutput;
+
+    // 5. Přidat fakturační údaje do users
+    console.log('💼 Step 5/6: Running addBillingToUsers.js...');
+    const { stdout: billingOutput, stderr: billingError } = await execPromise(
+      'node scripts/addBillingToUsers.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(billingOutput);
+    if (billingError) console.warn('Billing warnings:', billingError);
+    outputs.billing_users = billingOutput;
     
-    // 5. Seed ceníku
-    console.log('🌱 Step 5/5: Running seedPricing.js...');
+    // 6. Seed ceníku
+    console.log('🌱 Step 6/6: Running seedPricing.js...');
     try {
       const { stdout: seedOutput, stderr: seedError } = await execPromise(
         'node scripts/seedPricing.js',
@@ -109,7 +119,8 @@ router.post('/run-migrations', async (req, res) => {
         '2_columns': outputs.columns,
         '3_revenue_splits': outputs.revenue_splits,
         '4_invoice_splits': outputs.invoice_splits,
-        '5_seed': outputs.seed
+        '5_billing_users': outputs.billing_users,
+        '6_seed': outputs.seed
       }
     });
     
@@ -244,7 +255,26 @@ router.post('/step4-invoice-splits', async (req, res) => {
   }
 });
 
-router.post('/step5-seed', async (req, res) => {
+router.post('/step5-billing', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('💼 Running addBillingToUsers.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/addBillingToUsers.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+router.post('/step6-seed', async (req, res) => {
   if (!checkAuth(req, res)) return;
   
   try {

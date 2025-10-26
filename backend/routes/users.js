@@ -237,4 +237,73 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
+// Aktualizovat fakturační údaje uživatele
+router.put('/:id/billing', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      billing_name, 
+      billing_ico, 
+      billing_dic, 
+      billing_address, 
+      billing_email, 
+      billing_phone, 
+      billing_bank_account 
+    } = req.body;
+
+    // Ověřit že uživatel upravuje sebe nebo je admin
+    if (req.user.id !== parseInt(id) && req.user.email !== 'info@nevymyslis.cz') {
+      return res.status(403).json({ error: 'Nemáte oprávnění upravovat fakturační údaje jiného uživatele' });
+    }
+
+    const result = await pool.query(
+      `UPDATE users SET 
+        billing_name = $1,
+        billing_ico = $2,
+        billing_dic = $3,
+        billing_address = $4,
+        billing_email = $5,
+        billing_phone = $6,
+        billing_bank_account = $7,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8
+      RETURNING id, name, email, billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account`,
+      [billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Uživatel nenalezen' });
+    }
+
+    res.json({
+      message: 'Fakturační údaje úspěšně aktualizovány',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Chyba při aktualizaci fakturačních údajů:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Získat fakturační údaje uživatele
+router.get('/:id/billing', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'SELECT id, name, billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Uživatel nenalezen' });
+    }
+
+    res.json({ user: result.rows[0] });
+  } catch (error) {
+    console.error('Chyba při získávání fakturačních údajů:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
 module.exports = router;

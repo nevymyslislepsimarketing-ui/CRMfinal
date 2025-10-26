@@ -91,14 +91,17 @@ router.put('/:id', async (req, res) => {
   try {
     // Pokud aktualizujeme jen fakturační údaje (pravidelná faktura)
     if (monthly_recurring_amount !== undefined && name === undefined) {
+      const { manager_id } = req.body;
+      
       const result = await pool.query(
         `UPDATE clients SET 
           monthly_recurring_amount = $1, 
           invoice_day = $2, 
           invoice_due_days = $3,
+          manager_id = $4,
           updated_at = CURRENT_TIMESTAMP 
-          WHERE id = $4 RETURNING *`,
-        [monthly_recurring_amount, invoice_day, invoice_due_days, id]
+          WHERE id = $5 RETURNING *`,
+        [monthly_recurring_amount, invoice_day, invoice_due_days, manager_id || null, id]
       );
 
       if (result.rows.length === 0) {

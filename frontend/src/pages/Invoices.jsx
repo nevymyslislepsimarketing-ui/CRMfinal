@@ -23,6 +23,7 @@ const Invoices = () => {
     monthly_recurring_amount: '',
     invoice_day: '',
     invoice_due_days: '',
+    manager_id: '',
   });
 
   useEffect(() => {
@@ -124,6 +125,7 @@ const Invoices = () => {
         monthly_recurring_amount: '',
         invoice_day: '1',
         invoice_due_days: '14',
+        manager_id: '',
       });
     }
     setShowModal(true);
@@ -157,6 +159,7 @@ const Invoices = () => {
       monthly_recurring_amount: client.monthly_recurring_amount,
       invoice_day: client.invoice_day || '1',
       invoice_due_days: client.invoice_due_days || '14',
+      manager_id: client.manager_id || '',
       // Ostatní pole pro jednorázovou fakturu nebudou potřeba
       amount: '',
       description: '',
@@ -216,6 +219,7 @@ const Invoices = () => {
           monthly_recurring_amount: parseFloat(formData.monthly_recurring_amount),
           invoice_day: parseInt(formData.invoice_day) || 1,
           invoice_due_days: parseInt(formData.invoice_due_days) || 14,
+          manager_id: formData.manager_id ? parseInt(formData.manager_id) : null,
         });
 
         // Uložit rozdělení příjmů pokud jsou (nebo smazat pokud nejsou)
@@ -386,6 +390,13 @@ const Invoices = () => {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Splatnost:</span>
                       <span className="font-medium">{client.invoice_due_days} dní</span>
+                    </div>
+                  )}
+                  
+                  {client.manager_name && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Vystavitel:</span>
+                      <span className="font-medium text-purple-700">{client.manager_name}</span>
                     </div>
                   )}
                   
@@ -611,6 +622,23 @@ const Invoices = () => {
                       />
                       <p className="text-xs text-gray-500 mt-1">Počet dní do splatnosti</p>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="label">Vystavitel faktury (Manažer)</label>
+                    <select
+                      value={formData.manager_id}
+                      onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="">-- Vyberte manažera --</option>
+                      {allUsers.filter(u => u.role === 'manager').map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Z fakturačních údajů tohoto manažera se vygenerují faktury</p>
                   </div>
                 </>
               )}

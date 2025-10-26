@@ -8,17 +8,17 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    company_name: '',
-    ico: '',
-    dic: '',
-    address: '',
-    bank_account: '',
-    email: '',
-    phone: '',
+    billing_name: '',
+    billing_ico: '',
+    billing_dic: '',
+    billing_address: '',
+    billing_bank_account: '',
+    billing_email: '',
+    billing_phone: '',
   });
 
   useEffect(() => {
-    if (user?.role !== 'manager') {
+    if (!user?.id) {
       return;
     }
     fetchSettings();
@@ -26,16 +26,16 @@ const Settings = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await api.get('/company-settings/my');
-      if (response.data.settings) {
+      const response = await api.get(`/users/${user.id}/billing`);
+      if (response.data.user) {
         setFormData({
-          company_name: response.data.settings.company_name || '',
-          ico: response.data.settings.ico || '',
-          dic: response.data.settings.dic || '',
-          address: response.data.settings.address || '',
-          bank_account: response.data.settings.bank_account || '',
-          email: response.data.settings.email || '',
-          phone: response.data.settings.phone || '',
+          billing_name: response.data.user.billing_name || '',
+          billing_ico: response.data.user.billing_ico || '',
+          billing_dic: response.data.user.billing_dic || '',
+          billing_address: response.data.user.billing_address || '',
+          billing_bank_account: response.data.user.billing_bank_account || '',
+          billing_email: response.data.user.billing_email || '',
+          billing_phone: response.data.user.billing_phone || '',
         });
       }
     } catch (error) {
@@ -47,14 +47,14 @@ const Settings = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.company_name) {
+    if (!formData.billing_name) {
       alert('Název firmy je povinný');
       return;
     }
 
     setSaving(true);
     try {
-      await api.post('/company-settings/my', formData);
+      await api.put(`/users/${user.id}/billing`, formData);
       alert('Fakturační údaje úspěšně uloženy');
     } catch (error) {
       console.error('Chyba při ukládání nastavení:', error);
@@ -63,15 +63,6 @@ const Settings = () => {
       setSaving(false);
     }
   };
-
-  if (user?.role !== 'manager') {
-    return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-red-600">Přístup odepřen</h1>
-        <p className="text-gray-600 mt-2">Nemáte oprávnění k této stránce</p>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -101,8 +92,8 @@ const Settings = () => {
                 <label className="label">Název firmy *</label>
                 <input
                   type="text"
-                  value={formData.company_name}
-                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                  value={formData.billing_name}
+                  onChange={(e) => setFormData({ ...formData, billing_name: e.target.value })}
                   className="input-field"
                   required
                   placeholder="např. Nevymyslíš s.r.o."
@@ -114,8 +105,8 @@ const Settings = () => {
                   <label className="label">IČO</label>
                   <input
                     type="text"
-                    value={formData.ico}
-                    onChange={(e) => setFormData({ ...formData, ico: e.target.value })}
+                    value={formData.billing_ico}
+                    onChange={(e) => setFormData({ ...formData, billing_ico: e.target.value })}
                     className="input-field"
                     placeholder="12345678"
                   />
@@ -124,8 +115,8 @@ const Settings = () => {
                   <label className="label">DIČ</label>
                   <input
                     type="text"
-                    value={formData.dic}
-                    onChange={(e) => setFormData({ ...formData, dic: e.target.value })}
+                    value={formData.billing_dic}
+                    onChange={(e) => setFormData({ ...formData, billing_dic: e.target.value })}
                     className="input-field"
                     placeholder="CZ12345678"
                   />
@@ -135,8 +126,8 @@ const Settings = () => {
               <div>
                 <label className="label">Adresa</label>
                 <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={formData.billing_address}
+                  onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })}
                   className="input-field"
                   rows={3}
                   placeholder="Ulice 123, 110 00 Praha 1"
@@ -153,8 +144,8 @@ const Settings = () => {
                 <label className="label">Email</label>
                 <input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  value={formData.billing_email}
+                  onChange={(e) => setFormData({ ...formData, billing_email: e.target.value })}
                   className="input-field"
                   placeholder="fakturace@firma.cz"
                 />
@@ -164,8 +155,8 @@ const Settings = () => {
                 <label className="label">Telefon</label>
                 <input
                   type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.billing_phone}
+                  onChange={(e) => setFormData({ ...formData, billing_phone: e.target.value })}
                   className="input-field"
                   placeholder="+420 777 888 999"
                 />
@@ -180,8 +171,8 @@ const Settings = () => {
               <label className="label">Číslo účtu</label>
               <input
                 type="text"
-                value={formData.bank_account}
-                onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
+                value={formData.billing_bank_account}
+                onChange={(e) => setFormData({ ...formData, billing_bank_account: e.target.value })}
                 className="input-field"
                 placeholder="123456789/0100"
               />

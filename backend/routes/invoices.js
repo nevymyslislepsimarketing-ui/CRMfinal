@@ -18,12 +18,15 @@ router.get('/recurring', async (req, res) => {
         c.monthly_recurring_amount,
         c.invoice_day,
         c.invoice_due_days,
+        c.manager_id,
+        u.name as manager_name,
         COUNT(i.id) as total_invoices,
         SUM(CASE WHEN i.paid = true THEN 1 ELSE 0 END) as paid_invoices
       FROM clients c
       LEFT JOIN invoices i ON c.id = i.client_id
+      LEFT JOIN users u ON c.manager_id = u.id
       WHERE c.monthly_recurring_amount > 0
-      GROUP BY c.id, c.name, c.email, c.monthly_recurring_amount, c.invoice_day, c.invoice_due_days
+      GROUP BY c.id, c.name, c.email, c.monthly_recurring_amount, c.invoice_day, c.invoice_due_days, c.manager_id, u.name
       ORDER BY c.monthly_recurring_amount DESC
     `);
     res.json({ recurring: result.rows });
