@@ -82,13 +82,35 @@ router.post('/', async (req, res) => {
 // Aktualizovat klienta
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link } = req.body;
+  const { 
+    name, email, phone, status, notes, 
+    billing_company_name, ico, dic, billing_address, google_drive_link,
+    monthly_recurring_amount, invoice_day, invoice_due_days
+  } = req.body;
 
   try {
-    const result = await pool.query(
-      'UPDATE clients SET name = $1, email = $2, phone = $3, status = $4, notes = $5, billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11 RETURNING *',
-      [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, id]
-    );
+    // Pokud jsou nastaveny fakturační údaje, aktualizuj je
+    let query, params;
+    
+    if (monthly_recurring_amount !== undefined) {
+      query = `UPDATE clients SET 
+        name = $1, email = $2, phone = $3, status = $4, notes = $5, 
+        billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10,
+        monthly_recurring_amount = $11, invoice_day = $12, invoice_due_days = $13,
+        updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $14 RETURNING *`;
+      params = [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, 
+                monthly_recurring_amount, invoice_day, invoice_due_days, id];
+    } else {
+      query = `UPDATE clients SET 
+        name = $1, email = $2, phone = $3, status = $4, notes = $5, 
+        billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10,
+        updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $11 RETURNING *`;
+      params = [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, id];
+    }
+
+    const result = await pool.query(query, params);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Klient nenalezen' });

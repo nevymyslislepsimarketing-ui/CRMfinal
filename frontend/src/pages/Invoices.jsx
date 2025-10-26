@@ -129,6 +129,72 @@ const Invoices = () => {
     setShowModal(true);
   };
 
+  const handleEditRecurring = async (client) => {
+    setModalType('recurring');
+    setEditingInvoice(client); // Použijeme editingInvoice pro značení, že editujeme
+    
+    // Načíst rozdělení příjmů
+    try {
+      const splitsResponse = await api.get(`/revenue-splits/client/${client.id}`);
+      const existingSplits = splitsResponse.data.splits || [];
+      const allSplits = allUsers.map(user => {
+        const existing = existingSplits.find(s => s.user_id === user.id);
+        return {
+          user_id: user.id,
+          user_name: user.name,
+          amount: existing ? parseFloat(existing.amount) : 0,
+          notes: existing ? existing.notes : ''
+        };
+      });
+      setRevenueSplits(allSplits.filter(s => s.amount > 0));
+    } catch (error) {
+      console.error('Chyba při načítání rozdělení:', error);
+      setRevenueSplits([]);
+    }
+
+    setFormData({
+      client_id: client.id,
+      monthly_recurring_amount: client.monthly_recurring_amount,
+      invoice_day: client.invoice_day || '1',
+      invoice_due_days: client.invoice_due_days || '14',
+      // Ostatní pole pro jednorázovou fakturu nebudou potřeba
+      amount: '',
+      description: '',
+      issued_at: '',
+      due_date: '',
+      paid: false,
+    });
+    
+    setShowModal(true);
+  };
+
+  const handleDeleteRecurring = async (clientId) => {
+    if (!window.confirm('Opravdu chcete zrušit pravidelnou fakturaci pro tohoto klienta?')) {
+      return;
+    }
+
+    try {
+      await api.put(`/clients/${clientId}`, {
+        monthly_recurring_amount: 0,
+        invoice_day: null,
+        invoice_due_days: null
+      });
+      
+      // Smazat také rozdělení příjmů
+      try {
+        await api.post(`/revenue-splits/client/${clientId}`, { splits: [] });
+      } catch (err) {
+        console.warn('Nepodařilo se smazat rozdělení:', err);
+      }
+      
+      fetchRecurring();
+      alert('Pravidelná fakturace byla zrušena');
+    } catch (error) {
+      console.error('Chyba při rušení pravidelné fakturace:', error);
+      alert(error.response?.data?.error || 'Nepodařilo se zrušit pravidelnou fakturaci');
+    }
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingInvoice(null);
@@ -152,15 +218,13 @@ const Invoices = () => {
           invoice_due_days: parseInt(formData.invoice_due_days) || 14,
         });
 
-        // Uložit rozdělení příjmů pokud jsou
-        if (revenueSplits.length > 0) {
-          const validSplits = revenueSplits.filter(s => s.amount > 0);
-          await api.post(`/revenue-splits/client/${formData.client_id}`, { 
-            splits: validSplits 
-          });
-        }
+        // Uložit rozdělení příjmů pokud jsou (nebo smazat pokud nejsou)
+        const validSplits = revenueSplits.filter(s => s.amount > 0);
+        await api.post(`/revenue-splits/client/${formData.client_id}`, { 
+          splits: validSplits 
+        });
 
-        alert('Pravidelná fakturace nastavena');
+        alert(editingInvoice ? 'Pravidelná fakturace upravena' : 'Pravidelná fakturace nastavena');
         fetchRecurring();
         handleCloseModal();
       } catch (error) {
@@ -331,6 +395,24 @@ const Invoices = () => {
                       {client.paid_invoices} / {client.total_invoices} zaplaceno
                     </span>
                   </div>
+
+                  {/* Akční tlačítka */}
+                  <div className="flex space-x-2 pt-3 border-t border-gray-200 mt-3">
+                    <button
+                      onClick={() => handleEditRecurring(client)}
+                      className="flex-1 btn-secondary text-sm flex items-center justify-center space-x-1"
+                    >
+                      <Edit size={14} />
+                      <span>Upravit</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRecurring(client.id)}
+                      className="flex-1 btn-danger text-sm flex items-center justify-center space-x-1"
+                    >
+                      <Trash2 size={14} />
+                      <span>Zrušit</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -438,7 +520,7 @@ const Invoices = () => {
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">
                 {modalType === 'recurring' 
-                  ? 'Nastavit pravidelnou měsíční fakturaci'
+                  ? (editingInvoice ? 'Upravit pravidelnou fakturaci' : 'Nastavit pravidelnou měsíční fakturaci')
                   : (editingInvoice ? 'Upravit fakturu' : 'Vytvořit jednorázovou fakturu')}
               </h2>
               <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
@@ -659,7 +741,7 @@ const Invoices = () => {
               <div className="flex space-x-3 pt-4">
                 <button type="submit" className="flex-1 btn-primary">
                   {modalType === 'recurring' 
-                    ? 'Nastavit pravidelnou fakturaci' 
+                    ? (editingInvoice ? 'Uložit změny' : 'Nastavit pravidelnou fakturaci')
                     : (editingInvoice ? 'Uložit změny' : 'Vytvořit fakturu')}
                 </button>
                 <button type="button" onClick={handleCloseModal} className="flex-1 btn-secondary">

@@ -17,6 +17,7 @@ const Clients = () => {
   const [clientUsers, setClientUsers] = useState([]);
   const [credentials, setCredentials] = useState([]);
   const [editingCredential, setEditingCredential] = useState(null);
+  const [revenueSplits, setRevenueSplits] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -136,36 +137,6 @@ const Clients = () => {
     }
   };
 
-  const handleEditRecurring = (client) => {
-    // Zavřít detail modal a otevřít edit modal s klientem
-    setShowDetailModal(false);
-    handleOpenModal(client);
-  };
-
-  const handleCancelRecurring = async (clientId) => {
-    if (!window.confirm('Opravdu chcete zrušit pravidelnou fakturaci pro tohoto klienta?')) {
-      return;
-    }
-
-    try {
-      await api.put(`/clients/${clientId}`, {
-        monthly_recurring_amount: 0,
-        invoice_day: null,
-        invoice_due_days: null
-      });
-      
-      // Refresh klientů a zavřít modal
-      await fetchClients();
-      setShowDetailModal(false);
-      setSelectedClient(null);
-      
-      alert('Pravidelná fakturace byla zrušena');
-    } catch (error) {
-      console.error('Chyba při rušení pravidelné fakturace:', error);
-      alert('Nepodařilo se zrušit pravidelnou fakturaci');
-    }
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm('Opravdu chcete smazat tohoto klienta?')) {
       return;
@@ -242,12 +213,24 @@ const Clients = () => {
     } catch (error) {
       console.error('Chyba při načítání přihlašovacích údajů:', error);
     }
+
+    // Načíst rozdělení příjmů pokud má pravidelnou fakturaci
+    if (client.monthly_recurring_amount > 0) {
+      try {
+        const splitsResponse = await api.get(`/revenue-splits/client/${client.id}`);
+        setRevenueSplits(splitsResponse.data.splits || []);
+      } catch (error) {
+        console.error('Chyba při načítání rozdělení příjmů:', error);
+        setRevenueSplits([]);
+      }
+    }
   };
 
   const handleCloseDetailModal = () => {
     setShowDetailModal(false);
     setSelectedClient(null);
     setCredentials([]);
+    setRevenueSplits([]);
   };
 
   // Správa přihlašovacích údajů
@@ -755,19 +738,36 @@ const Clients = () => {
                         </div>
                       )}
                     </div>
-                    <div className="mt-4 flex space-x-3">
-                      <button
-                        onClick={() => handleEditRecurring(selectedClient)}
-                        className="flex-1 btn-secondary text-sm"
-                      >
-                        Upravit nastavení
-                      </button>
-                      <button
-                        onClick={() => handleCancelRecurring(selectedClient.id)}
-                        className="flex-1 btn-danger text-sm"
-                      >
-                        Zrušit fakturaci
-                      </button>
+
+                    {/* Rozdělení příjmů */}
+                    {revenueSplits.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-green-300">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">💰 Rozdělení mezi pracovníky:</h4>
+                        <div className="space-y-2">
+                          {revenueSplits.map(split => (
+                            <div key={split.user_id} className="flex justify-between items-center text-sm bg-white bg-opacity-50 rounded px-3 py-2">
+                              <span className="text-gray-700 font-medium">{split.user_name}</span>
+                              <span className="font-bold text-green-700">
+                                {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(split.amount)}
+                              </span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between items-center text-sm font-semibold bg-green-100 rounded px-3 py-2 mt-2">
+                            <span className="text-gray-900">Celkem rozděleno:</span>
+                            <span className="text-green-800">
+                              {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(
+                                revenueSplits.reduce((sum, s) => sum + parseFloat(s.amount), 0)
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4 pt-3 border-t border-green-300">
+                      <p className="text-xs text-gray-600 text-center">
+                        💡 Úprava a mazání fakturace je možné v sekci <strong>Faktury</strong>
+                      </p>
                     </div>
                   </div>
                 </div>
