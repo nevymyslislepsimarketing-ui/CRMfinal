@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/database');
 const authenticateToken = require('../middleware/auth');
+const QRCode = require('qrcode');
 
 const router = express.Router();
 
@@ -215,6 +216,7 @@ router.get('/:id/html', async (req, res) => {
         c.ico as client_ico,
         c.dic as client_dic,
         c.billing_address as client_address,
+        c.manager_id,
         u.name as created_by_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
@@ -228,20 +230,22 @@ router.get('/:id/html', async (req, res) => {
 
     const invoice = invoiceResult.rows[0];
 
-    // Získat fakturační údaje dodavatele (uživatele který vytvořil fakturu)
+    // Získat fakturační údaje dodavatele (manažera přiřazeného ke klientovi)
+    const managerId = invoice.manager_id || invoice.created_by || req.user.id;
     const settingsResult = await pool.query(
-      'SELECT * FROM company_settings WHERE user_id = $1',
-      [invoice.created_by || req.user.id]
+      'SELECT billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account FROM users WHERE id = $1',
+      [managerId]
     );
 
-    const companySettings = settingsResult.rows[0] || {
-      company_name: 'Nevymyslíš s.r.o.',
-      ico: 'Neuvedeno',
-      dic: 'Neuvedeno',
-      address: 'Neuvedeno',
-      bank_account: 'Neuvedeno',
-      email: 'fakturace@nevymyslis.cz',
-      phone: 'Neuvedeno'
+    const managerBilling = settingsResult.rows[0];
+    const companySettings = {
+      company_name: managerBilling?.billing_name || 'Nevymyslíš s.r.o.',
+      ico: managerBilling?.billing_ico || 'Neuvedeno',
+      dic: managerBilling?.billing_dic || 'Neuvedeno',
+      address: managerBilling?.billing_address || 'Neuvedeno',
+      bank_account: managerBilling?.billing_bank_account || 'Neuvedeno',
+      email: managerBilling?.billing_email || 'fakturace@nevymyslis.cz',
+      phone: managerBilling?.billing_phone || 'Neuvedeno'
     };
 
     // Formátování dat
@@ -256,6 +260,36 @@ router.get('/:id/html', async (req, res) => {
         currency: 'CZK',
       }).format(amount);
     };
+
+    // Generovat QR kód pro platbu (SPAYD formát pro české platby)
+    const generatePaymentQR = async () => {
+      try {
+        // Formátovat číslo účtu (odstranit lomítko a mezery)
+        const accountNumber = (companySettings.bank_account || '').replace(/[\s\/]/g, '');
+        const amount = parseFloat(invoice.amount).toFixed(2);
+        const variableSymbol = invoice.invoice_number.replace(/[^0-9]/g, '');
+        
+        // SPAYD formát (Short Payment Descriptor)
+        const spayd = `SPD*1.0*ACC:${accountNumber}*AM:${amount}*CC:CZK*VS:${variableSymbol}*MSG:Faktura ${invoice.invoice_number}`;
+        
+        // Generovat QR kód jako base64
+        const qrCodeDataURL = await QRCode.toDataURL(spayd, {
+          width: 200,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+        
+        return qrCodeDataURL;
+      } catch (error) {
+        console.error('Chyba při generování QR kódu:', error);
+        return null;
+      }
+    };
+
+    const qrCodeDataURL = await generatePaymentQR();
 
     // HTML šablona faktury
     const html = `
@@ -455,6 +489,31 @@ router.get('/:id/html', async (req, res) => {
                 ✓ Faktura byla uhrazena dne ${formatDate(invoice.payment_date)}
             </p>
         </div>
+        ` : qrCodeDataURL ? `
+        <div style="border: 2px solid #7C3AED; border-radius: 12px; padding: 20px; margin-bottom: 30px; background: #F9FAFB;">
+            <h3 style="color: #7C3AED; margin-bottom: 15px; font-size: 18px;">💳 QR Platba</h3>
+            <div style="display: flex; align-items: center; gap: 30px;">
+                <div style="flex-shrink: 0;">
+                    <img src="${qrCodeDataURL}" alt="QR kód pro platbu" style="width: 180px; height: 180px; border: 3px solid #7C3AED; border-radius: 8px; padding: 5px; background: white;" />
+                </div>
+                <div style="flex-grow: 1;">
+                    <p style="margin-bottom: 10px; font-size: 14px; color: #666;">
+                        <strong>Naskenujte QR kód</strong> bankovní aplikací pro okamžitou platbu
+                    </p>
+                    <div style="background: white; padding: 12px; border-radius: 6px; font-size: 13px; color: #333;">
+                        <div style="margin-bottom: 5px;">
+                            <strong>Číslo účtu:</strong> ${companySettings.bank_account || 'Neuvedeno'}
+                        </div>
+                        <div style="margin-bottom: 5px;">
+                            <strong>Částka:</strong> ${formatCurrency(invoice.amount)}
+                        </div>
+                        <div>
+                            <strong>Variabilní symbol:</strong> ${invoice.invoice_number.replace(/[^0-9]/g, '')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         ` : ''}
 
         <div class="footer">
@@ -479,6 +538,81 @@ router.get('/:id/html', async (req, res) => {
 
   } catch (error) {
     console.error('Chyba při generování HTML faktury:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// Získat přehled zisků pro manažera
+router.get('/profit-overview/:managerId', async (req, res) => {
+  try {
+    const { managerId } = req.params;
+    
+    // Získat všechny faktury pro klienty tohoto manažera
+    const invoicesQuery = `
+      SELECT 
+        i.id,
+        i.amount,
+        i.paid,
+        i.issued_at,
+        DATE_TRUNC('month', i.issued_at) as month
+      FROM invoices i
+      INNER JOIN clients c ON i.client_id = c.id
+      WHERE c.manager_id = $1
+      ORDER BY i.issued_at DESC
+    `;
+    
+    const result = await pool.query(invoicesQuery, [managerId]);
+    const invoices = result.rows;
+    
+    // Seskupit data po měsících
+    const monthlyMap = {};
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    
+    // Inicializovat posledních 12 měsíců
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - i, 1);
+      const monthKey = date.toISOString().slice(0, 7); // YYYY-MM
+      const monthName = date.toLocaleDateString('cs-CZ', { year: 'numeric', month: 'long' });
+      
+      monthlyMap[monthKey] = {
+        month: monthName,
+        paid: 0,
+        unpaid: 0
+      };
+    }
+    
+    // Seskupit faktury
+    invoices.forEach(invoice => {
+      const monthKey = new Date(invoice.issued_at).toISOString().slice(0, 7);
+      
+      if (monthlyMap[monthKey]) {
+        const amount = parseFloat(invoice.amount);
+        if (invoice.paid) {
+          monthlyMap[monthKey].paid += amount;
+        } else {
+          monthlyMap[monthKey].unpaid += amount;
+        }
+      }
+    });
+    
+    // Převést na pole
+    const monthlyData = Object.values(monthlyMap);
+    
+    // Vypočítat souhrn
+    const summary = {
+      paid: invoices.filter(i => i.paid).reduce((sum, i) => sum + parseFloat(i.amount), 0),
+      unpaid: invoices.filter(i => !i.paid).reduce((sum, i) => sum + parseFloat(i.amount), 0),
+      total: invoices.reduce((sum, i) => sum + parseFloat(i.amount), 0)
+    };
+    
+    res.json({
+      monthlyData,
+      summary
+    });
+    
+  } catch (error) {
+    console.error('Chyba při získávání přehledu zisků:', error);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });

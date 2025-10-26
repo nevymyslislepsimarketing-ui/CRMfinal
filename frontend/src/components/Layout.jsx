@@ -19,7 +19,8 @@ import {
   DollarSign,
   Sparkles,
   FolderOpen,
-  ChevronDown
+  ChevronDown,
+  BarChart3
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -61,6 +62,7 @@ const Layout = ({ children }) => {
       items: [
         { name: 'Naceňování', href: '/pricing', icon: DollarSign, managerOnly: true },
         { name: 'Faktury', href: '/invoices', icon: FileText, managerOnly: true },
+        { name: 'Přehled zisků', href: '/profit-overview', icon: BarChart3, managerOnly: true },
       ]
     },
     system: {

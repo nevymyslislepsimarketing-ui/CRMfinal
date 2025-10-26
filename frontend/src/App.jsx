@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Tasks from './pages/Tasks';
 import Invoices from './pages/Invoices';
+import ProfitOverview from './pages/ProfitOverview';
 import Pipeline from './pages/Pipeline';
 import CalendarEnhanced from './pages/CalendarEnhanced';
 import Projects from './pages/Projects';
@@ -72,6 +73,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Invoices />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/profit-overview"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <ProfitOverview />
                 </Layout>
               </ProtectedRoute>
             }
