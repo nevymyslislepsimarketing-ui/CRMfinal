@@ -25,11 +25,9 @@ const AICaptions = () => {
 
   const postTypes = [
     { value: 'post', label: 'Běžný příspěvek' },
-    { value: 'story', label: 'Story' },
     { value: 'reel', label: 'Reel/Video' },
-    { value: 'carousel', label: 'Carousel' },
-    { value: 'announcement', label: 'Oznámení' },
-    { value: 'promotion', label: 'Propagace/Akce' },
+    { value: 'linkedin', label: 'LinkedIn Post' },
+    { value: 'ad', label: 'Reklama' },
   ];
 
   const tones = [
