@@ -216,7 +216,7 @@ router.get('/:id/html', async (req, res) => {
         c.ico as client_ico,
         c.dic as client_dic,
         c.billing_address as client_address,
-        c.manager_id,
+        c.manager_id as client_manager_id,
         u.name as created_by_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
@@ -230,8 +230,9 @@ router.get('/:id/html', async (req, res) => {
 
     const invoice = invoiceResult.rows[0];
 
-    // Získat fakturační údaje dodavatele (manažera přiřazeného ke klientovi)
-    const managerId = invoice.manager_id || invoice.created_by || req.user.id;
+    // Získat fakturační údaje dodavatele
+    // Priorita: 1. manager_id z invoices, 2. manager_id z clients, 3. created_by, 4. aktuální user
+    const managerId = invoice.manager_id || invoice.client_manager_id || invoice.created_by || req.user.id;
     const settingsResult = await pool.query(
       'SELECT billing_name, billing_ico, billing_dic, billing_address, billing_email, billing_phone, billing_bank_account FROM users WHERE id = $1',
       [managerId]
