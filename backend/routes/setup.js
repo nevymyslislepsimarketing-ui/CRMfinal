@@ -24,9 +24,14 @@ router.post('/run-migrations', async (req, res) => {
   if (setupCompleted) {
     return res.status(200).json({ 
       message: 'Setup already completed',
-      status: 'ok'
+      status: 'ok',
+      hint: 'Use POST /api/setup/reset to run again'
     });
   }
+  
+  // Nastavit delší timeout pro response
+  req.setTimeout(120000); // 2 minuty
+  res.setTimeout(120000);
 
   try {
     console.log('🚀 Starting complete migrations via API endpoint...');
@@ -135,6 +140,97 @@ router.post('/reset', (req, res) => {
     success: true,
     message: 'Setup flag reset - you can run migrations again'
   });
+});
+
+// Jednotlivé migrace (pro případ problémů s timeoutem)
+const checkAuth = (req, res) => {
+  const authKey = req.body.auth_key || req.headers['x-auth-key'];
+  const expectedKey = process.env.SETUP_KEY || 'nevymyslis-setup-2025';
+  
+  if (authKey !== expectedKey) {
+    res.status(403).json({ 
+      error: 'Unauthorized',
+      message: 'Invalid auth key' 
+    });
+    return false;
+  }
+  return true;
+};
+
+router.post('/step1-migrate', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('📊 Running migrateToV3.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/migrateToV3.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message, hint: 'Tables may already exist - OK to skip' });
+  }
+});
+
+router.post('/step2-columns', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('🔧 Running addMissingColumns.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/addMissingColumns.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+router.post('/step3-revenue', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('💰 Running addRevenueSplits.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/addRevenueSplits.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+router.post('/step4-seed', async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  
+  try {
+    console.log('🌱 Running seedPricing.js...');
+    const { stdout, stderr } = await execPromise(
+      'node scripts/seedPricing.js',
+      { cwd: __dirname + '/..', timeout: 60000 }
+    );
+    console.log(stdout);
+    if (stderr) console.warn(stderr);
+    
+    res.json({ success: true, output: stdout });
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({ success: false, error: error.message, hint: 'Services may already exist - OK to skip' });
+  }
 });
 
 module.exports = router;

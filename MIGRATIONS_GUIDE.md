@@ -37,7 +37,7 @@ Naplní databázi službami z ceníku:
 
 ## 🚀 JAK SPUSTIT MIGRACE
 
-### **Varianta A: Přes API (DOPORUČENO pro Render free tier)**
+### **Varianta A: Všechny najednou (rychlejší, ale může timeoutovat)**
 
 Po dokončení buildu (~2 min) otevřete konzoli prohlížeče na `https://crm-sgb1.onrender.com` a spusťte:
 
@@ -58,7 +58,99 @@ fetch('/api/setup/run-migrations', {
 });
 ```
 
-### **Varianta B: Ručně přes SSH (pokud máte přístup)**
+### **Varianta B: Po krocích (DOPORUČENO pokud A selhává s timeoutem)**
+
+Spusťte migrace postupně v konzoli prohlížeče:
+
+```javascript
+const authKey = 'nevymyslis-setup-2025';
+
+// Krok 1: Základní tabulky
+fetch('/api/setup/step1-migrate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ auth_key: authKey })
+})
+.then(r => r.json())
+.then(data => {
+  console.log('1️⃣ Migrate:', data);
+  if (!data.success && data.hint) console.log('ℹ️', data.hint);
+});
+
+// Počkejte 5s a pak:
+
+// Krok 2: Sloupce
+fetch('/api/setup/step2-columns', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ auth_key: authKey })
+})
+.then(r => r.json())
+.then(data => console.log('2️⃣ Columns:', data));
+
+// Počkejte 5s a pak:
+
+// Krok 3: Revenue splits
+fetch('/api/setup/step3-revenue', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ auth_key: authKey })
+})
+.then(r => r.json())
+.then(data => console.log('3️⃣ Revenue:', data));
+
+// Počkejte 5s a pak:
+
+// Krok 4: Seed služeb
+fetch('/api/setup/step4-seed', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ auth_key: authKey })
+})
+.then(r => r.json())
+.then(data => {
+  console.log('4️⃣ Seed:', data);
+  if (data.success) alert('🎉 Všechny migrace dokončeny!');
+});
+```
+
+### **Varianta C: Automatický sekvence (kopírujte celé)**
+
+```javascript
+const runMigrations = async () => {
+  const authKey = 'nevymyslis-setup-2025';
+  const steps = ['step1-migrate', 'step2-columns', 'step3-revenue', 'step4-seed'];
+  const labels = ['Základní tabulky', 'Sloupce', 'Revenue splits', 'Seed služeb'];
+  
+  for (let i = 0; i < steps.length; i++) {
+    console.log(`\n🔄 ${i+1}/4: ${labels[i]}...`);
+    
+    try {
+      const response = await fetch(`/api/setup/${steps[i]}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth_key: authKey })
+      });
+      
+      const data = await response.json();
+      console.log(data.success ? '✅' : '⚠️', data);
+      
+      // Počkat 2s mezi kroky
+      if (i < steps.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } catch (error) {
+      console.error('❌ Chyba:', error);
+    }
+  }
+  
+  console.log('\n🎉 Hotovo! Zkontrolujte výsledky výše.');
+};
+
+runMigrations();
+```
+
+### **Varianta D: Ručně přes SSH (pokud máte přístup)**
 
 ```bash
 # Přejít do backend složky
