@@ -215,19 +215,19 @@ const Tasks = () => {
       new: 'bg-purple-100 text-purple-800',
       in_progress: 'bg-blue-100 text-blue-800',
       waiting_for_client: 'bg-yellow-100 text-yellow-800',
-      done: 'bg-green-100 text-green-800',
+      completed: 'bg-green-100 text-green-800',
       // Legacy support
       pending: 'bg-purple-100 text-purple-800',
-      completed: 'bg-green-100 text-green-800',
+      done: 'bg-green-100 text-green-800',
     };
     const labels = {
       new: 'Nový',
       in_progress: 'V řešení',
       waiting_for_client: 'Čeká na klienta',
-      done: 'Hotovo',
+      completed: 'Hotovo',
       // Legacy support
       pending: 'Čeká',
-      completed: 'Hotovo',
+      done: 'Hotovo',
     };
     return { style: styles[status] || 'bg-gray-100 text-gray-800', label: labels[status] || status };
   };
@@ -435,11 +435,12 @@ const Tasks = () => {
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="input-field"
+                    required
                   >
                     <option value="new">Nový</option>
                     <option value="in_progress">V řešení</option>
                     <option value="waiting_for_client">Čeká na klienta</option>
-                    <option value="done">Hotovo</option>
+                    <option value="completed">Hotovo</option>
                   </select>
                 </div>
               </div>
