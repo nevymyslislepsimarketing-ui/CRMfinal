@@ -123,6 +123,36 @@ const Clients = () => {
     }
   };
 
+  const handleEditRecurring = (client) => {
+    // Zavřít detail modal a otevřít edit modal s klientem
+    setShowDetailModal(false);
+    handleOpenModal(client);
+  };
+
+  const handleCancelRecurring = async (clientId) => {
+    if (!window.confirm('Opravdu chcete zrušit pravidelnou fakturaci pro tohoto klienta?')) {
+      return;
+    }
+
+    try {
+      await api.put(`/clients/${clientId}`, {
+        monthly_recurring_amount: 0,
+        invoice_day: null,
+        invoice_due_days: null
+      });
+      
+      // Refresh klientů a zavřít modal
+      await fetchClients();
+      setShowDetailModal(false);
+      setSelectedClient(null);
+      
+      alert('Pravidelná fakturace byla zrušena');
+    } catch (error) {
+      console.error('Chyba při rušení pravidelné fakturace:', error);
+      alert('Nepodařilo se zrušit pravidelnou fakturaci');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Opravdu chcete smazat tohoto klienta?')) {
       return;
@@ -634,6 +664,52 @@ const Clients = () => {
                   </div>
                 )}
               </div>
+
+              {/* Pravidelné fakturace */}
+              {selectedClient.monthly_recurring_amount > 0 && (
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900">📅 Pravidelná měsíční fakturace</h3>
+                    <span className="badge badge-success">Aktivní</span>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Měsíční částka</p>
+                        <p className="text-2xl font-bold text-green-700">
+                          {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(selectedClient.monthly_recurring_amount)}
+                        </p>
+                      </div>
+                      {selectedClient.invoice_day && (
+                        <div>
+                          <p className="text-sm text-gray-600">Den vystavení</p>
+                          <p className="text-lg font-semibold">{selectedClient.invoice_day}. den v měsíci</p>
+                        </div>
+                      )}
+                      {selectedClient.invoice_due_days && (
+                        <div>
+                          <p className="text-sm text-gray-600">Splatnost</p>
+                          <p className="text-lg font-semibold">{selectedClient.invoice_due_days} dní</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-4 flex space-x-3">
+                      <button
+                        onClick={() => handleEditRecurring(selectedClient)}
+                        className="flex-1 btn-secondary text-sm"
+                      >
+                        Upravit nastavení
+                      </button>
+                      <button
+                        onClick={() => handleCancelRecurring(selectedClient.id)}
+                        className="flex-1 btn-danger text-sm"
+                      >
+                        Zrušit pravidelnou fakturaci
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Google Drive */}
               {selectedClient.google_drive_link && (

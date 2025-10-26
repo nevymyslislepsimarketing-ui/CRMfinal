@@ -7,6 +7,7 @@ const Admin = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -31,6 +32,7 @@ const Admin = () => {
     }
     fetchUsers();
     fetchTasks();
+    fetchProjects();
   }, [user]);
 
   const fetchUsers = async () => {
@@ -50,6 +52,15 @@ const Admin = () => {
       setTasks(response.data.tasks);
     } catch (error) {
       console.error('Chyba při načítání úkolů:', error);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const response = await api.get('/projects');
+      setProjects(response.data.projects);
+    } catch (error) {
+      console.error('Chyba při načítání projektů:', error);
     }
   };
 
@@ -82,12 +93,23 @@ const Admin = () => {
     return tasks.filter(task => task.assigned_to === userId);
   };
 
+  const getUserProjects = (userId) => {
+    return projects.filter(project => project.assigned_to === userId);
+  };
+
   const getTaskStats = (userId) => {
     const userTasks = getUserTasks(userId);
     const completed = userTasks.filter(t => t.status === 'completed').length;
     const pending = userTasks.filter(t => t.status === 'pending').length;
     const inProgress = userTasks.filter(t => t.status === 'in_progress').length;
     return { total: userTasks.length, completed, pending, inProgress };
+  };
+
+  const getProjectStats = (userId) => {
+    const userProjects = getUserProjects(userId);
+    const inProgress = userProjects.filter(p => p.status === 'in_progress').length;
+    const completed = userProjects.filter(p => p.status === 'completed').length;
+    return { total: userProjects.length, inProgress, completed };
   };
 
   const handleToggleStatus = async (userId) => {
@@ -200,6 +222,7 @@ const Admin = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {users.map(u => {
           const stats = getTaskStats(u.id);
+          const projectStats = getProjectStats(u.id);
           return (
             <div key={u.id} className="card">
               <div className="flex items-start justify-between mb-4">
@@ -293,6 +316,42 @@ const Admin = () => {
                     </div>
                     <p className="text-xs text-gray-500 mt-1 text-center">
                       {Math.round((stats.completed / stats.total) * 100)}% dokončeno
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Přehled projektů */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold mb-3">Přehled projektů:</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Celkem projektů:</span>
+                    <span className="font-semibold">{projectStats.total}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Probíhá:</span>
+                    <span className="text-blue-600 font-semibold">{projectStats.inProgress}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 flex items-center">
+                      <CheckCircle size={14} className="mr-1 text-green-600" />
+                      Dokončeno:
+                    </span>
+                    <span className="text-green-600 font-semibold">{projectStats.completed}</span>
+                  </div>
+                </div>
+
+                {projectStats.total > 0 && (
+                  <div className="mt-3">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-pastel-orange to-pastel-orange-dark h-2 rounded-full transition-all"
+                        style={{ width: `${(projectStats.completed / projectStats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 text-center">
+                      {Math.round((projectStats.completed / projectStats.total) * 100)}% dokončeno
                     </p>
                   </div>
                 )}
