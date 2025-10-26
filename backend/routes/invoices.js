@@ -7,6 +7,32 @@ const router = express.Router();
 // Všechny routes jsou chráněny autentizací
 router.use(authenticateToken);
 
+// Získat přehled pravidelných faktur (klienti s monthly_recurring)
+router.get('/recurring', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.id,
+        c.name,
+        c.email,
+        c.monthly_recurring_amount,
+        c.invoice_day,
+        c.invoice_due_days,
+        COUNT(i.id) as total_invoices,
+        SUM(CASE WHEN i.paid = true THEN 1 ELSE 0 END) as paid_invoices
+      FROM clients c
+      LEFT JOIN invoices i ON c.id = i.client_id
+      WHERE c.monthly_recurring_amount > 0
+      GROUP BY c.id, c.name, c.email, c.monthly_recurring_amount, c.invoice_day, c.invoice_due_days
+      ORDER BY c.monthly_recurring_amount DESC
+    `);
+    res.json({ recurring: result.rows });
+  } catch (error) {
+    console.error('Chyba při získávání pravidelných faktur:', error);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
 // Získat všechny faktury s informacemi o klientovi
 router.get('/', async (req, res) => {
   try {

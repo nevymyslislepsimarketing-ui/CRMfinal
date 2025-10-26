@@ -114,17 +114,17 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Vytvořit projekt
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { client_id, name, type, brief, deadline, status } = req.body;
+    const { client_id, name, type, brief, deadline, status, assigned_to } = req.body;
     
     if (!name || !type) {
       return res.status(400).json({ error: 'Název a typ projektu jsou povinné' });
     }
     
     const result = await pool.query(`
-      INSERT INTO projects (client_id, name, type, brief, deadline, status, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO projects (client_id, name, type, brief, deadline, status, assigned_to, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [client_id, name, type, brief, deadline, status || 'in_progress', req.user.userId]);
+    `, [client_id, name, type, brief, deadline, status || 'in_progress', assigned_to || null, req.user.userId]);
     
     res.status(201).json({ project: result.rows[0] });
   } catch (error) {
@@ -137,7 +137,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { client_id, name, type, brief, deadline, status } = req.body;
+    const { client_id, name, type, brief, deadline, status, assigned_to } = req.body;
     
     const result = await pool.query(`
       UPDATE projects 
@@ -147,10 +147,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
           brief = COALESCE($4, brief),
           deadline = COALESCE($5, deadline),
           status = COALESCE($6, status),
+          assigned_to = COALESCE($7, assigned_to),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      WHERE id = $8
       RETURNING *
-    `, [client_id, name, type, brief, deadline, status, id]);
+    `, [client_id, name, type, brief, deadline, status, assigned_to, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Projekt nenalezen' });

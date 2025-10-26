@@ -15,7 +15,8 @@ const Projects = () => {
     type: 'web',
     brief: '',
     deadline: '',
-    status: 'in_progress'
+    status: 'in_progress',
+    assigned_to: ''
   });
 
   const projectTypes = [
@@ -105,7 +106,8 @@ const Projects = () => {
       type: 'web',
       brief: '',
       deadline: '',
-      status: 'in_progress'
+      status: 'in_progress',
+      assigned_to: ''
     });
   };
 
@@ -117,7 +119,8 @@ const Projects = () => {
       type: project.type,
       brief: project.brief || '',
       deadline: project.deadline ? project.deadline.split('T')[0] : '',
-      status: project.status
+      status: project.status,
+      assigned_to: project.assigned_to || ''
     });
     setShowModal(true);
   };
@@ -316,18 +319,34 @@ const Projects = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="label">Klient</label>
-                <select
-                  value={formData.client_id}
-                  onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                  className="input-field"
-                >
-                  <option value="">-- Vyberte klienta --</option>
-                  {clients.map(client => (
-                    <option key={client.id} value={client.id}>{client.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Klient</label>
+                  <select
+                    value={formData.client_id}
+                    onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="">-- Vyberte klienta --</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Přiřazený pracovník</label>
+                  <select
+                    value={formData.assigned_to}
+                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="">-- Vyberte pracovníka --</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>{user.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

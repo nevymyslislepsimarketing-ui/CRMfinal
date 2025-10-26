@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, X, CheckCircle, Calendar, DollarSign, FileText } fr
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
+  const [recurring, setRecurring] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -20,6 +21,7 @@ const Invoices = () => {
 
   useEffect(() => {
     fetchInvoices();
+    fetchRecurring();
     fetchClients();
   }, []);
 
@@ -31,6 +33,15 @@ const Invoices = () => {
       console.error('Chyba při načítání faktur:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecurring = async () => {
+    try {
+      const response = await api.get('/invoices/recurring');
+      setRecurring(response.data.recurring);
+    } catch (error) {
+      console.error('Chyba při načítání pravidelných faktur:', error);
     }
   };
 
@@ -187,7 +198,58 @@ const Invoices = () => {
         </button>
       </div>
 
+      {/* Pravidelné faktury */}
+      {recurring.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">📅 Pravidelné měsíční platby</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recurring.map((client) => (
+              <div key={client.id} className="card hover:shadow-lg transition">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
+                    <p className="text-sm text-gray-600">{client.email}</p>
+                  </div>
+                  <span className="badge badge-info">Měsíčně</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Částka:</span>
+                    <span className="text-xl font-bold text-purple-600">
+                      {formatCurrency(client.monthly_recurring_amount)}
+                    </span>
+                  </div>
+                  
+                  {client.invoice_day && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Den vystavení:</span>
+                      <span className="font-medium">{client.invoice_day}. den v měsíci</span>
+                    </div>
+                  )}
+                  
+                  {client.invoice_due_days && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Splatnost:</span>
+                      <span className="font-medium">{client.invoice_due_days} dní</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-200">
+                    <span className="text-gray-600">Celkem faktur:</span>
+                    <span className="font-medium">
+                      {client.paid_invoices} / {client.total_invoices} zaplaceno
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Seznam faktur */}
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">📄 Vystavené faktury</h2>
       <div className="space-y-4">
         {invoices.map((invoice) => (
           <div

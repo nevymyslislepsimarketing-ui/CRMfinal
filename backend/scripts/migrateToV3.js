@@ -23,6 +23,7 @@ const migrateToV3 = async () => {
         brief TEXT,
         deadline DATE,
         status VARCHAR(50) DEFAULT 'in_progress',
+        assigned_to INTEGER REFERENCES users(id),
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -30,8 +31,25 @@ const migrateToV3 = async () => {
       
       CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_id);
       CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+      CREATE INDEX IF NOT EXISTS idx_projects_assigned ON projects(assigned_to);
     `);
     console.log('✅ Tabulka projects vytvořena');
+    
+    // Přidat sloupec assigned_to pokud už tabulka existuje
+    console.log('🔧 Kontrola sloupce assigned_to v projects...');
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'projects' AND column_name = 'assigned_to'
+        ) THEN
+          ALTER TABLE projects ADD COLUMN assigned_to INTEGER REFERENCES users(id);
+          CREATE INDEX IF NOT EXISTS idx_projects_assigned ON projects(assigned_to);
+        END IF;
+      END $$;
+    `);
+    console.log('✅ Sloupec assigned_to zkontrolován');
 
     console.log('📋 Vytváření tabulky project_milestones...');
     await pool.query(`

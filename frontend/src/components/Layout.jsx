@@ -53,7 +53,6 @@ const Layout = ({ children }) => {
       items: [
         { name: 'Kalendář', href: '/calendar', icon: Calendar },
         { name: 'AI Popisky', href: '/ai-captions', icon: Sparkles },
-        { name: 'Google Drive', href: '/google-drive', icon: FolderOpen },
         { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
       ]
     },
