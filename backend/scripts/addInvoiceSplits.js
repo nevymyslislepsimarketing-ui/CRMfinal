@@ -12,9 +12,23 @@ const addInvoiceSplits = async () => {
   console.log('🔧 Vytváření tabulky pro rozdělení jednorázových faktur...');
   
   try {
+    // Zkontrolovat jestli tabulka existuje
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'invoice_splits'
+      );
+    `);
+    
+    if (tableCheck.rows[0].exists) {
+      console.log('⚠️  Tabulka invoice_splits už existuje - smazat a znovu vytvořit...');
+      await pool.query('DROP TABLE IF EXISTS invoice_splits CASCADE;');
+      console.log('🗑️  Stará tabulka smazána');
+    }
+
     // Vytvořit tabulku invoice_splits
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS invoice_splits (
+      CREATE TABLE invoice_splits (
         id SERIAL PRIMARY KEY,
         invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
         user_id INTEGER NOT NULL REFERENCES users(id),
@@ -28,12 +42,12 @@ const addInvoiceSplits = async () => {
 
     // Vytvořit indexy
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_invoice_splits_invoice ON invoice_splits(invoice_id);
+      CREATE INDEX idx_invoice_splits_invoice ON invoice_splits(invoice_id);
     `);
     console.log('✅ Index na invoice_id vytvořen');
 
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_invoice_splits_user ON invoice_splits(user_id);
+      CREATE INDEX idx_invoice_splits_user ON invoice_splits(user_id);
     `);
     console.log('✅ Index na user_id vytvořen');
 
