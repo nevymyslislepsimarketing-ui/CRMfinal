@@ -31,14 +31,14 @@ router.post('/run-migrations', async (req, res) => {
   try {
     console.log('🚀 Starting migrations via API endpoint...');
     
-    // Spustit migrace
-    console.log('📊 Running migrateToV3.js...');
-    const { stdout: migrateOutput, stderr: migrateError } = await execPromise(
-      'node scripts/migrateToV3.js',
+    // Spustit bezpečné přidání sloupců
+    console.log('🔧 Running addMissingColumns.js...');
+    const { stdout: columnsOutput, stderr: columnsError } = await execPromise(
+      'node scripts/addMissingColumns.js',
       { cwd: __dirname + '/..' }
     );
-    console.log(migrateOutput);
-    if (migrateError) console.error(migrateError);
+    console.log(columnsOutput);
+    if (columnsError) console.error(columnsError);
     
     // Spustit seed
     console.log('🌱 Running seedPricing.js...');
@@ -57,7 +57,7 @@ router.post('/run-migrations', async (req, res) => {
       success: true,
       message: 'Migrations completed successfully',
       output: {
-        migration: migrateOutput,
+        columns: columnsOutput,
         seed: seedOutput
       }
     });
