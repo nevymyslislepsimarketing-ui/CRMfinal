@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, X, Mail, Phone, Users as UsersIcon, Eye, ExternalLink, Key, Lock, DollarSign } from 'lucide-react';
-import RevenueSplitModal from '../components/RevenueSplitModal';
+import { Plus, Edit, Trash2, X, Mail, Phone, Users as UsersIcon, Eye, ExternalLink, Key, Lock } from 'lucide-react';
 
 const Clients = () => {
   const { user } = useAuth();
@@ -18,8 +17,6 @@ const Clients = () => {
   const [clientUsers, setClientUsers] = useState([]);
   const [credentials, setCredentials] = useState([]);
   const [editingCredential, setEditingCredential] = useState(null);
-  const [revenueSplits, setRevenueSplits] = useState([]);
-  const [showSplitModal, setShowSplitModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -245,47 +242,12 @@ const Clients = () => {
     } catch (error) {
       console.error('Chyba při načítání přihlašovacích údajů:', error);
     }
-
-    // Načíst rozdělení příjmů pokud má pravidelnou fakturu
-    if (client.monthly_recurring_amount > 0) {
-      try {
-        const splitsResponse = await api.get(`/revenue-splits/client/${client.id}`);
-        setRevenueSplits(splitsResponse.data.splits);
-      } catch (error) {
-        console.error('Chyba při načítání rozdělení příjmů:', error);
-      }
-    }
   };
 
   const handleCloseDetailModal = () => {
     setShowDetailModal(false);
     setSelectedClient(null);
     setCredentials([]);
-    setRevenueSplits([]);
-  };
-
-  const handleOpenSplitModal = () => {
-    setShowSplitModal(true);
-  };
-
-  const handleCloseSplitModal = () => {
-    setShowSplitModal(false);
-  };
-
-  const handleSaveSplits = async (splits) => {
-    try {
-      await api.post(`/revenue-splits/client/${selectedClient.id}`, { splits });
-      
-      // Refresh splits
-      const response = await api.get(`/revenue-splits/client/${selectedClient.id}`);
-      setRevenueSplits(response.data.splits);
-      
-      setShowSplitModal(false);
-      alert('Rozdělení příjmů uloženo');
-    } catch (error) {
-      console.error('Chyba při ukládání rozdělení:', error);
-      alert('Nepodařilo se uložit rozdělení příjmů');
-    }
   };
 
   // Správa přihlašovacích údajů
@@ -793,31 +755,7 @@ const Clients = () => {
                         </div>
                       )}
                     </div>
-                    {/* Rozdělení příjmů */}
-                    {revenueSplits.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-green-300">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-2">💰 Rozdělení mezi pracovníky:</h4>
-                        <div className="space-y-1">
-                          {revenueSplits.map(split => (
-                            <div key={split.user_id} className="flex justify-between text-sm">
-                              <span className="text-gray-700">{split.user_name}</span>
-                              <span className="font-semibold text-green-700">
-                                {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(split.amount)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="mt-4 flex space-x-3">
-                      <button
-                        onClick={handleOpenSplitModal}
-                        className="flex-1 btn-primary text-sm flex items-center justify-center space-x-1"
-                      >
-                        <DollarSign size={16} />
-                        <span>{revenueSplits.length > 0 ? 'Upravit rozdělení' : 'Nastavit rozdělení'}</span>
-                      </button>
                       <button
                         onClick={() => handleEditRecurring(selectedClient)}
                         className="flex-1 btn-secondary text-sm"
@@ -1026,15 +964,6 @@ const Clients = () => {
             </form>
           </div>
         </div>
-      )}
-
-      {/* Modal pro rozdělení příjmů */}
-      {showSplitModal && selectedClient && (
-        <RevenueSplitModal
-          client={selectedClient}
-          onClose={handleCloseSplitModal}
-          onSave={handleSaveSplits}
-        />
       )}
     </div>
   );

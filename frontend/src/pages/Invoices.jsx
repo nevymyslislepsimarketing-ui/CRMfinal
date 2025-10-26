@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, X, CheckCircle, Calendar, DollarSign, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, X, CheckCircle, Calendar, DollarSign, FileText, Repeat } from 'lucide-react';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -8,7 +8,10 @@ const Invoices = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState('one-time'); // 'one-time' nebo 'recurring'
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
+  const [revenueSplits, setRevenueSplits] = useState([]);
   const [formData, setFormData] = useState({
     invoice_number: '',
     client_id: '',
@@ -17,12 +20,16 @@ const Invoices = () => {
     issued_at: '',
     due_date: '',
     paid: false,
+    monthly_recurring_amount: '',
+    invoice_day: '',
+    invoice_due_days: '',
   });
 
   useEffect(() => {
     fetchInvoices();
     fetchRecurring();
     fetchClients();
+    fetchUsers();
   }, []);
 
   const fetchInvoices = async () => {
@@ -54,6 +61,15 @@ const Invoices = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get('/users');
+      setAllUsers(response.data.users);
+    } catch (error) {
+      console.error('Chyba při načítání uživatelů:', error);
+    }
+  };
+
   const handleOpenPDF = async (id) => {
     try {
       // Použít fetch s autorizací místo window.open
@@ -73,7 +89,10 @@ const Invoices = () => {
     }
   };
 
-  const handleOpenModal = (invoice = null) => {
+  const handleOpenModal = (type = 'one-time', invoice = null) => {
+    setModalType(type);
+    setRevenueSplits([]); // Reset splits
+    
     if (invoice) {
       setEditingInvoice(invoice);
       setFormData({
@@ -84,6 +103,9 @@ const Invoices = () => {
         issued_at: invoice.issued_at ? invoice.issued_at.split('T')[0] : '',
         due_date: invoice.due_date ? invoice.due_date.split('T')[0] : '',
         paid: invoice.paid,
+        monthly_recurring_amount: '',
+        invoice_day: '',
+        invoice_due_days: '',
       });
     } else {
       setEditingInvoice(null);
@@ -99,6 +121,9 @@ const Invoices = () => {
         issued_at: today,
         due_date: dueDate,
         paid: false,
+        monthly_recurring_amount: '',
+        invoice_day: '1',
+        invoice_due_days: '14',
       });
     }
     setShowModal(true);
@@ -112,28 +137,72 @@ const Invoices = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.client_id || !formData.amount || !formData.issued_at || !formData.due_date || !formData.description) {
-      alert('Vyplňte všechna povinná pole (včetně popisu služeb)');
-      return;
-    }
-
-    try {
-      const submitData = {
-        ...formData,
-        client_id: parseInt(formData.client_id),
-        amount: parseFloat(formData.amount),
-      };
-
-      if (editingInvoice) {
-        await api.put(`/invoices/${editingInvoice.id}`, submitData);
-      } else {
-        await api.post('/invoices', submitData);
+    if (modalType === 'recurring') {
+      // Pravidelná faktura
+      if (!formData.client_id || !formData.monthly_recurring_amount) {
+        alert('Vyplňte klienta a měsíční částku');
+        return;
       }
-      fetchInvoices();
-      handleCloseModal();
-    } catch (error) {
-      console.error('Chyba při ukládání faktury:', error);
-      alert(error.response?.data?.error || 'Nepodařilo se uložit fakturu');
+
+      try {
+        // Aktualizovat klienta s pravidelnou fakturací
+        await api.put(`/clients/${formData.client_id}`, {
+          monthly_recurring_amount: parseFloat(formData.monthly_recurring_amount),
+          invoice_day: parseInt(formData.invoice_day) || 1,
+          invoice_due_days: parseInt(formData.invoice_due_days) || 14,
+        });
+
+        // Uložit rozdělení příjmů pokud jsou
+        if (revenueSplits.length > 0) {
+          const validSplits = revenueSplits.filter(s => s.amount > 0);
+          await api.post(`/revenue-splits/client/${formData.client_id}`, { 
+            splits: validSplits 
+          });
+        }
+
+        alert('Pravidelná fakturace nastavena');
+        fetchRecurring();
+        handleCloseModal();
+      } catch (error) {
+        console.error('Chyba při nastavování pravidelné fakturace:', error);
+        alert(error.response?.data?.error || 'Nepodařilo se nastavit pravidelnou fakturaci');
+      }
+    } else {
+      // Jednorázová faktura
+      if (!formData.client_id || !formData.amount || !formData.issued_at || !formData.due_date || !formData.description) {
+        alert('Vyplňte všechna povinná pole (včetně popisu služeb)');
+        return;
+      }
+
+      try {
+        const submitData = {
+          ...formData,
+          client_id: parseInt(formData.client_id),
+          amount: parseFloat(formData.amount),
+        };
+
+        let invoiceId;
+        if (editingInvoice) {
+          await api.put(`/invoices/${editingInvoice.id}`, submitData);
+          invoiceId = editingInvoice.id;
+        } else {
+          const response = await api.post('/invoices', submitData);
+          invoiceId = response.data.invoice.id;
+        }
+
+        // Uložit rozdělení příjmů pokud jsou
+        if (!editingInvoice && revenueSplits.length > 0) {
+          // TODO: Implementovat ukládání rozdělení pro jednorázovou fakturu
+          // Možná potřebujeme novou tabulku invoice_splits
+          console.log('Revenue splits pro jednorázovou fakturu:', revenueSplits);
+        }
+
+        fetchInvoices();
+        handleCloseModal();
+      } catch (error) {
+        console.error('Chyba při ukládání faktury:', error);
+        alert(error.response?.data?.error || 'Nepodařilo se uložit fakturu');
+      }
     }
   };
 
@@ -192,10 +261,22 @@ const Invoices = () => {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Faktury</h1>
-        <button onClick={() => handleOpenModal()} className="btn-primary flex items-center space-x-2">
-          <Plus size={18} />
-          <span>Přidat fakturu</span>
-        </button>
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => handleOpenModal('one-time')} 
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <Plus size={18} />
+            <span>Vytvořit jednorázovou fakturu</span>
+          </button>
+          <button 
+            onClick={() => handleOpenModal('recurring')} 
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Repeat size={18} />
+            <span>Nastavit pravidelnou fakturaci</span>
+          </button>
+        </div>
       </div>
 
       {/* Pravidelné faktury */}
@@ -318,7 +399,7 @@ const Invoices = () => {
                   </button>
                 )}
                 <button
-                  onClick={() => handleOpenModal(invoice)}
+                  onClick={() => handleOpenModal('one-time', invoice)}
                   className="text-primary-600 hover:text-primary-700"
                 >
                   <Edit size={18} />
@@ -347,7 +428,9 @@ const Invoices = () => {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">
-                {editingInvoice ? 'Upravit fakturu' : 'Přidat fakturu'}
+                {modalType === 'recurring' 
+                  ? 'Nastavit pravidelnou měsíční fakturaci'
+                  : (editingInvoice ? 'Upravit fakturu' : 'Vytvořit jednorázovou fakturu')}
               </h2>
               <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
                 <X size={24} />
@@ -355,7 +438,7 @@ const Invoices = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {editingInvoice && (
+              {modalType === 'one-time' && editingInvoice && (
                 <div>
                   <label className="label">Číslo faktury</label>
                   <input
@@ -368,7 +451,7 @@ const Invoices = () => {
                 </div>
               )}
 
-              {!editingInvoice && (
+              {modalType === 'one-time' && !editingInvoice && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
                     <strong>ℹ️ Číslo faktury se vygeneruje automaticky</strong><br />
@@ -394,76 +477,181 @@ const Invoices = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="label">Částka (Kč) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="input-field"
-                  required
-                />
-              </div>
+              {/* Pole pro PRAVIDELNOU fakturaci */}
+              {modalType === 'recurring' && (
+                <>
+                  <div>
+                    <label className="label">Měsíční částka (Kč) *</label>
+                    <input
+                      type="number"
+                      step="100"
+                      min="0"
+                      value={formData.monthly_recurring_amount}
+                      onChange={(e) => setFormData({ ...formData, monthly_recurring_amount: e.target.value })}
+                      className="input-field"
+                      placeholder="6000"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="label">Popis služeb *</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="input-field"
-                  rows={3}
-                  placeholder="Popis poskytnutých služeb..."
-                  required
-                />
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Den vystavení faktury</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="28"
+                        value={formData.invoice_day}
+                        onChange={(e) => setFormData({ ...formData, invoice_day: e.target.value })}
+                        className="input-field"
+                        placeholder="1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">1-28 den v měsíci</p>
+                    </div>
+                    <div>
+                      <label className="label">Splatnost (dní)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.invoice_due_days}
+                        onChange={(e) => setFormData({ ...formData, invoice_due_days: e.target.value })}
+                        className="input-field"
+                        placeholder="14"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Počet dní do splatnosti</p>
+                    </div>
+                  </div>
+                </>
+              )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Datum vystavení *</label>
-                  <input
-                    type="date"
-                    value={formData.issued_at}
-                    onChange={(e) => setFormData({ ...formData, issued_at: e.target.value })}
-                    className={editingInvoice ? "input-field bg-gray-100" : "input-field"}
-                    required
-                    readOnly={editingInvoice}
-                    disabled={editingInvoice}
-                  />
-                  {editingInvoice && (
-                    <p className="text-xs text-gray-500 mt-1">Datum vystavení nelze měnit</p>
-                  )}
+              {/* Pole pro JEDNORÁZOVOU fakturu */}
+              {modalType === 'one-time' && (
+                <>
+                  <div>
+                    <label className="label">Částka (Kč) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">Popis služeb *</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="input-field"
+                      rows={3}
+                      placeholder="Popis poskytnutých služeb..."
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Datum vystavení *</label>
+                      <input
+                        type="date"
+                        value={formData.issued_at}
+                        onChange={(e) => setFormData({ ...formData, issued_at: e.target.value })}
+                        className={editingInvoice ? "input-field bg-gray-100" : "input-field"}
+                        required
+                        readOnly={editingInvoice}
+                        disabled={editingInvoice}
+                      />
+                      {editingInvoice && (
+                        <p className="text-xs text-gray-500 mt-1">Datum vystavení nelze měnit</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="label">Datum splatnosti *</label>
+                      <input
+                        type="date"
+                        value={formData.due_date}
+                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="paid"
+                      checked={formData.paid}
+                      onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="paid" className="ml-2 text-sm text-gray-700">
+                      Zaplaceno
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* Rozdělení příjmů mezi pracovníky */}
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h3 className="font-semibold text-gray-900 mb-3">💰 Přerozdělení příjmů mezi pracovníky (volitelné)</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Rozdělte {modalType === 'recurring' ? 'měsíční částku' : 'částku faktury'} mezi jednotlivé pracovníky.
+                </p>
+                
+                <div className="space-y-3">
+                  {allUsers.map(user => {
+                    const split = revenueSplits.find(s => s.user_id === user.id);
+                    return (
+                      <div key={user.id} className="flex items-center space-x-3 bg-gray-50 p-3 rounded">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{user.name}</p>
+                        </div>
+                        <div className="w-32">
+                          <input
+                            type="number"
+                            min="0"
+                            step="100"
+                            value={split?.amount || ''}
+                            onChange={(e) => {
+                              const amount = parseFloat(e.target.value) || 0;
+                              const newSplits = revenueSplits.filter(s => s.user_id !== user.id);
+                              if (amount > 0) {
+                                newSplits.push({ user_id: user.id, user_name: user.name, amount, notes: '' });
+                              }
+                              setRevenueSplits(newSplits);
+                            }}
+                            placeholder="0"
+                            className="input-field text-sm"
+                          />
+                        </div>
+                        <span className="text-sm text-gray-600">Kč</span>
+                      </div>
+                    );
+                  })}
                 </div>
-
-                <div>
-                  <label className="label">Datum splatnosti *</label>
-                  <input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="input-field"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="paid"
-                  checked={formData.paid}
-                  onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="paid" className="ml-2 text-sm text-gray-700">
-                  Zaplaceno
-                </label>
+                
+                {revenueSplits.length > 0 && (
+                  <div className="mt-3 flex justify-between items-center p-3 bg-purple-50 rounded">
+                    <span className="font-medium text-gray-900">Celkem rozděleno:</span>
+                    <span className="text-lg font-bold text-purple-700">
+                      {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(
+                        revenueSplits.reduce((sum, s) => sum + s.amount, 0)
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex space-x-3 pt-4">
                 <button type="submit" className="flex-1 btn-primary">
-                  {editingInvoice ? 'Uložit změny' : 'Přidat fakturu'}
+                  {modalType === 'recurring' 
+                    ? 'Nastavit pravidelnou fakturaci' 
+                    : (editingInvoice ? 'Uložit změny' : 'Vytvořit fakturu')}
                 </button>
                 <button type="button" onClick={handleCloseModal} className="flex-1 btn-secondary">
                   Zrušit

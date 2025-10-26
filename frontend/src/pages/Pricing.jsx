@@ -351,7 +351,15 @@ const Pricing = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Historie nabídek pro klienta</h2>
           <div className="space-y-4">
             {quotes.map((quote, index) => {
-              const services = JSON.parse(quote.services || '[]');
+              let services = [];
+              try {
+                services = typeof quote.services === 'string' 
+                  ? JSON.parse(quote.services) 
+                  : (quote.services || []);
+              } catch (e) {
+                console.error('Error parsing services:', e);
+                services = [];
+              }
               return (
                 <div key={quote.id} className="card">
                   <div className="flex items-start justify-between mb-3">
