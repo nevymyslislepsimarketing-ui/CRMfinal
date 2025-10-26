@@ -89,28 +89,37 @@ router.put('/:id', async (req, res) => {
   } = req.body;
 
   try {
-    // Pokud jsou nastaveny fakturační údaje, aktualizuj je
-    let query, params;
-    
-    if (monthly_recurring_amount !== undefined) {
-      query = `UPDATE clients SET 
-        name = $1, email = $2, phone = $3, status = $4, notes = $5, 
-        billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10,
-        monthly_recurring_amount = $11, invoice_day = $12, invoice_due_days = $13,
-        updated_at = CURRENT_TIMESTAMP 
-        WHERE id = $14 RETURNING *`;
-      params = [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, 
-                monthly_recurring_amount, invoice_day, invoice_due_days, id];
-    } else {
-      query = `UPDATE clients SET 
-        name = $1, email = $2, phone = $3, status = $4, notes = $5, 
-        billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10,
-        updated_at = CURRENT_TIMESTAMP 
-        WHERE id = $11 RETURNING *`;
-      params = [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, id];
+    // Pokud aktualizujeme jen fakturační údaje (pravidelná faktura)
+    if (monthly_recurring_amount !== undefined && name === undefined) {
+      const result = await pool.query(
+        `UPDATE clients SET 
+          monthly_recurring_amount = $1, 
+          invoice_day = $2, 
+          invoice_due_days = $3,
+          updated_at = CURRENT_TIMESTAMP 
+          WHERE id = $4 RETURNING *`,
+        [monthly_recurring_amount, invoice_day, invoice_due_days, id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Klient nenalezen' });
+      }
+
+      return res.json({
+        message: 'Fakturační údaje aktualizovány',
+        client: result.rows[0]
+      });
     }
 
-    const result = await pool.query(query, params);
+    // Jinak aktualizujeme všechna pole (standardní editace klienta)
+    const result = await pool.query(
+      `UPDATE clients SET 
+        name = $1, email = $2, phone = $3, status = $4, notes = $5, 
+        billing_company_name = $6, ico = $7, dic = $8, billing_address = $9, google_drive_link = $10,
+        updated_at = CURRENT_TIMESTAMP 
+        WHERE id = $11 RETURNING *`,
+      [name, email, phone, status, notes, billing_company_name, ico, dic, billing_address, google_drive_link, id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Klient nenalezen' });
