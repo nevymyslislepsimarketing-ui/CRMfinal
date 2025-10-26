@@ -11,11 +11,21 @@ const Pricing = () => {
   const [quoteName, setQuoteName] = useState('');
   const [customAdjustments, setCustomAdjustments] = useState('');
   const [loading, setLoading] = useState(true);
+  const [quotes, setQuotes] = useState([]);
+  const [applyToClient, setApplyToClient] = useState(true);
 
   useEffect(() => {
     fetchServices();
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    if (selectedClient) {
+      fetchQuotes(selectedClient);
+    } else {
+      setQuotes([]);
+    }
+  }, [selectedClient]);
 
   const fetchServices = async () => {
     try {
@@ -35,6 +45,15 @@ const Pricing = () => {
       setClients(response.data.clients);
     } catch (error) {
       console.error('Chyba při načítání klientů:', error);
+    }
+  };
+
+  const fetchQuotes = async (clientId) => {
+    try {
+      const response = await api.get(`/pricing/quotes?client_id=${clientId}`);
+      setQuotes(response.data.quotes);
+    } catch (error) {
+      console.error('Chyba při načítání nabídek:', error);
     }
   };
 
@@ -98,14 +117,20 @@ const Pricing = () => {
         quote_name: quoteName || 'Nabídka služeb',
         services: selectedServices,
         custom_adjustments: customAdjustments,
-        apply_to_client: true
+        apply_to_client: applyToClient
       });
 
-      alert('Nabídka byla uložena a aplikována na klienta');
+      const msg = applyToClient 
+        ? 'Nabídka byla uložena a aplikována na klienta (pravidelná fakturace nastavena)'
+        : 'Nabídka byla uložena (bez nastavení pravidelné fakturace)';
       
-      // Reset
+      alert(msg);
+      
+      // Refresh nabídek
+      fetchQuotes(selectedClient);
+      
+      // Reset pouze formulář
       setSelectedServices([]);
-      setSelectedClient('');
       setQuoteName('');
       setCustomAdjustments('');
     } catch (error) {
@@ -289,6 +314,24 @@ const Pricing = () => {
               </div>
             </div>
 
+            {/* Checkbox - Aplikovat na klienta */}
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={applyToClient}
+                  onChange={(e) => setApplyToClient(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Aplikovat jako pravidelnou fakturaci</p>
+                  <p className="text-xs text-gray-500">
+                    Pokud zaškrtnete, měsíční částka se nastaví u klienta jako pravidelná faktura
+                  </p>
+                </div>
+              </label>
+            </div>
+
             {/* Save Button */}
             <button
               onClick={handleSaveQuote}
@@ -298,13 +341,75 @@ const Pricing = () => {
               <Save size={18} />
               <span>Uložit nabídku</span>
             </button>
-
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Nabídka bude uložena ke klientovi a nastavena jako pravidelná faktura
-            </p>
           </div>
         </div>
       </div>
+
+      {/* Historie nabídek */}
+      {selectedClient && quotes.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Historie nabídek pro klienta</h2>
+          <div className="space-y-4">
+            {quotes.map((quote, index) => {
+              const services = JSON.parse(quote.services || '[]');
+              return (
+                <div key={quote.id} className="card">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{quote.quote_name}</h3>
+                      <p className="text-sm text-gray-600">
+                        Vytvořeno: {new Date(quote.created_at).toLocaleDateString('cs-CZ')} 
+                        {quote.created_by_name && ` • ${quote.created_by_name}`}
+                      </p>
+                    </div>
+                    {index === 0 && (
+                      <span className="badge badge-success">Nejnovější</span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <p className="text-sm text-gray-600">Měsíčně:</p>
+                      <p className="text-xl font-bold text-purple-600">
+                        {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(quote.monthly_total)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Jednorázově:</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(quote.one_time_total)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-primary-600 hover:text-primary-700 font-medium">
+                      Zobrazit služby ({services.length})
+                    </summary>
+                    <div className="mt-2 space-y-1 pl-4">
+                      {services.map((service, idx) => (
+                        <div key={idx} className="flex justify-between text-gray-700">
+                          <span>• {service.service_name}</span>
+                          <span className="font-medium">
+                            {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(service.price)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+
+                  {quote.custom_adjustments && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-sm text-gray-600">Poznámky:</p>
+                      <p className="text-sm text-gray-900">{quote.custom_adjustments}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
