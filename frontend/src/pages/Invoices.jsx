@@ -104,6 +104,7 @@ const Invoices = () => {
         issued_at: invoice.issued_at ? invoice.issued_at.split('T')[0] : '',
         due_date: invoice.due_date ? invoice.due_date.split('T')[0] : '',
         paid: invoice.paid,
+        manager_id: invoice.manager_id || '',
         monthly_recurring_amount: '',
         invoice_day: '',
         invoice_due_days: '',
