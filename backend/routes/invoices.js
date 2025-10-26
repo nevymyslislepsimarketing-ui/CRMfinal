@@ -312,7 +312,7 @@ router.get('/:id/html', async (req, res) => {
         '6200': 'COMMERZBANK',
         '6210': 'mBank',
         '6300': 'BNP Paribas Personal Finance',
-        '6363': 'mBank',
+        '6363': 'Partners Banka',
         '6700': 'Všeobecná úverová banka',
         '6800': 'Sberbank',
         '7910': 'Deutsche Bank',
