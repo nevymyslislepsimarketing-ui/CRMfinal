@@ -279,6 +279,61 @@ router.get('/:id/html', async (req, res) => {
       }).format(amount);
     };
 
+    // Helper funkce pro získání názvu banky podle kódu
+    const getBankName = (code) => {
+      const banks = {
+        '0100': 'Komerční banka',
+        '0300': 'ČSOB',
+        '0600': 'MONETA Money Bank',
+        '0710': 'Česká národní banka',
+        '0800': 'Česká spořitelna',
+        '2010': 'Fio banka',
+        '2020': 'MUFG Bank',
+        '2060': 'Citfin',
+        '2070': 'Moravský Peněžní Ústav',
+        '2100': 'Hypoteční banka',
+        '2220': 'Peněžní dům',
+        '2240': 'Poštovní spořitelna',
+        '2250': 'Banka CREDITAS',
+        '2260': 'NEY spořitelní družstvo',
+        '2275': 'Podnikatelská družstevní záložna',
+        '2600': 'Citibank',
+        '2700': 'UniCredit Bank',
+        '3030': 'Air Bank',
+        '3050': 'BNP Paribas',
+        '3060': 'PKO BP',
+        '3500': 'ING Bank',
+        '4000': 'Expobank',
+        '4300': 'Českomoravská záruční a rozvojová banka',
+        '5500': 'Raiffeisenbank',
+        '5800': 'J&T Banka',
+        '6000': 'PPF banka',
+        '6100': 'Equa bank',
+        '6200': 'COMMERZBANK',
+        '6210': 'mBank',
+        '6300': 'BNP Paribas Personal Finance',
+        '6363': 'mBank',
+        '6700': 'Všeobecná úverová banka',
+        '6800': 'Sberbank',
+        '7910': 'Deutsche Bank',
+        '7950': 'Raiffeisen stavební spořitelna',
+        '7960': 'ČMSS',
+        '7970': 'Wüstenrot stavební spořitelna',
+        '7980': 'Wüstenrot hypoteční banka',
+        '7990': 'Modrá pyramida stavební spořitelna',
+        '8030': 'Volksbank',
+        '8040': 'Oberbank',
+        '8060': 'Stavební spořitelna České spořitelny',
+        '8090': 'Česká exportní banka',
+        '8150': 'HSBC Bank',
+        '8200': 'PRIVAT BANK der Raiffeisenlandesbank',
+        '8220': 'Payment Execution',
+        '8230': 'Eepay',
+        '8240': 'Družstevní záložna Kredit'
+      };
+      return banks[code] || 'Neznámá banka';
+    };
+
     // Generovat QR kód pro platbu (SPAYD formát pro české platby)
     const generatePaymentQR = async () => {
       try {
@@ -301,22 +356,24 @@ router.get('/:id/html', async (req, res) => {
         
         const [, prefix = '', accountNumber, bankCode] = accountMatch;
         
-        // Použít český formát účtu pro SPAYD (funguje lépe než IBAN)
-        // Formát: kód banky + předčíslí (pokud je) + číslo účtu
-        // Podle SPAYD spec: ACC:CZ-BBBB-PPPPPPNNNNNNNNNN
-        const paddedPrefix = prefix ? prefix.padStart(6, '0') : '000000';
-        const paddedAccount = accountNumber.padStart(10, '0');
-        const czechAccount = `CZ-${bankCode}-${paddedPrefix}${paddedAccount}`;
+        // Použít přesný český formát účtu jak se zapisuje běžně
+        // [předčíslí-]číslo/kódbanky
+        let czechAccount;
+        if (prefix) {
+          czechAccount = `${prefix}-${accountNumber}/${bankCode}`;
+        } else {
+          czechAccount = `${accountNumber}/${bankCode}`;
+        }
         
         console.log('🔍 QR kód - Převod čísla účtu:');
         console.log('   Vstup:', bankAccount);
         console.log('   Formát pro SPAYD:', czechAccount);
+        console.log('   Kód banky:', bankCode, '(', getBankName(bankCode), ')');
         
         const amount = parseFloat(invoice.amount).toFixed(2);
-        // Variabilní symbol nepoužívat (příliš dlouhý)
         
-        // SPAYD formát (Short Payment Descriptor) s českým číslem účtu
-        // Bez variabilního symbolu - poznámka bude obsahovat číslo faktury
+        // SPAYD formát s českým číslem účtu v původním formátu
+        // Bez variabilního symbolu - číslo faktury bude v poznámce
         const spayd = `SPD*1.0*ACC:${czechAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.invoice_number}`;
         
         console.log('   SPAYD:', spayd);
