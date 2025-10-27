@@ -259,7 +259,7 @@ router.get('/:id/html', async (req, res) => {
     const companySettings = {
       company_name: managerBilling?.billing_name || 'Nevymyslíš s.r.o.',
       ico: managerBilling?.billing_ico || 'Neuvedeno',
-      dic: managerBilling?.billing_dic || 'Neuvedeno',
+      dic: managerBilling?.billing_dic && managerBilling.billing_dic.trim() !== '' ? managerBilling.billing_dic : null,
       address: managerBilling?.billing_address || 'Neuvedeno',
       bank_account: managerBilling?.billing_bank_account || 'Neuvedeno',
       email: managerBilling?.billing_email || 'fakturace@nevymyslis.cz',
@@ -549,7 +549,7 @@ router.get('/:id/html', async (req, res) => {
                 <p><strong>${companySettings.company_name}</strong></p>
                 <p>${companySettings.address || ''}</p>
                 <p>IČO: ${companySettings.ico || ''}</p>
-                <p>DIČ: ${companySettings.dic || ''}</p>
+                <p>DIČ: ${companySettings.dic && companySettings.dic.trim() !== '' && companySettings.dic !== 'Neuvedeno' ? companySettings.dic : 'Není plátce DPH'}</p>
                 <p>Email: ${companySettings.email || ''}</p>
                 <p>Tel: ${companySettings.phone || ''}</p>
             </div>
@@ -558,7 +558,7 @@ router.get('/:id/html', async (req, res) => {
                 <p><strong>${invoice.billing_company_name || invoice.client_name}</strong></p>
                 <p>${invoice.client_address || ''}</p>
                 <p>IČO: ${invoice.client_ico || ''}</p>
-                <p>DIČ: ${invoice.client_dic || ''}</p>
+                <p>DIČ: ${invoice.client_dic && invoice.client_dic.trim() !== '' && invoice.client_dic !== 'Neuvedeno' ? invoice.client_dic : 'Není plátce DPH'}</p>
             </div>
         </div>
 
