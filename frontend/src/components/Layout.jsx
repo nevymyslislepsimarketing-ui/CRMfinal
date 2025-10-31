@@ -20,7 +20,8 @@ import {
   Sparkles,
   FolderOpen,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  CalendarDays
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -30,6 +31,7 @@ const Layout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState({
     clients: false,
+    tasks: false,
     tools: false,
     finance: false,
     system: false
@@ -43,7 +45,6 @@ const Layout = ({ children }) => {
   // Hlavní jednotlivé záložky (nejdůležitější zleva)
   const mainNav = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, managerOnly: true },
-    { name: 'Úkoly', href: '/tasks', icon: CheckSquare },
     { name: 'Projekty', href: '/projects', icon: Briefcase },
   ];
 
@@ -55,6 +56,14 @@ const Layout = ({ children }) => {
       items: [
         { name: 'Naši Klienti', href: '/clients', icon: Users },
         { name: 'Pipeline', href: '/pipeline', icon: TrendingUp, managerOnly: true },
+      ]
+    },
+    tasks: {
+      name: 'Úkoly',
+      icon: CheckSquare,
+      items: [
+        { name: 'Seznam úkolů', href: '/tasks', icon: CheckSquare },
+        { name: 'Týdenní pohled', href: '/tasks/week', icon: CalendarDays },
       ]
     },
     tools: {

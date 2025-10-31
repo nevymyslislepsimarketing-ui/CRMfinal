@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Tasks from './pages/Tasks';
+import TasksWeekView from './pages/TasksWeekView';
 import Invoices from './pages/Invoices';
 import ProfitOverview from './pages/ProfitOverview';
 import Pipeline from './pages/Pipeline';
@@ -62,6 +63,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Tasks />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/tasks/week"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TasksWeekView />
                 </Layout>
               </ProtectedRoute>
             }
