@@ -4,21 +4,21 @@ import api from '../api/axios';
 import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+// Získat pondělí daného týdne
+const getMonday = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+};
+
 const TasksWeekView = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [taskTypes, setTaskTypes] = useState([]);
-  const [currentWeekStart, setCurrentWeekStart] = useState(getMonday(new Date()));
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => getMonday(new Date()));
   const [loading, setLoading] = useState(true);
-
-  // Získat pondělí daného týdne
-  function getMonday(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-  }
 
   // Získat datum pro konkrétní den v týdnu (0 = pondělí, 6 = neděle)
   const getDateForDay = (dayOffset) => {
