@@ -59,9 +59,13 @@ const TasksWeekView = () => {
     try {
       setLoading(true);
       const response = await api.get('/tasks');
-      setTasks(response.data);
+      // API může vracet pole přímo nebo objekt s polem
+      const tasksData = Array.isArray(response.data) ? response.data : (response.data.tasks || []);
+      setTasks(tasksData);
+      console.log('📋 Načteno úkolů:', tasksData.length);
     } catch (error) {
       console.error('Chyba při načítání úkolů:', error);
+      setTasks([]); // Nastavit prázdné pole při chybě
     } finally {
       setLoading(false);
     }
@@ -70,9 +74,12 @@ const TasksWeekView = () => {
   const fetchTaskTypes = async () => {
     try {
       const response = await api.get('/task-types');
-      setTaskTypes(response.data);
+      const typesData = Array.isArray(response.data) ? response.data : [];
+      setTaskTypes(typesData);
+      console.log('🎨 Načteno typů úkolů:', typesData.length);
     } catch (error) {
       console.error('Chyba při načítání typů úkolů:', error);
+      setTaskTypes([]); // Nastavit prázdné pole při chybě
     }
   };
 
@@ -80,6 +87,12 @@ const TasksWeekView = () => {
   const getTasksForDay = (dayOffset) => {
     const dayDate = getDateForDay(dayOffset);
     const dayKey = formatDateKey(dayDate);
+    
+    // Ošetření pokud tasks není pole
+    if (!Array.isArray(tasks)) {
+      console.warn('⚠️ Tasks není pole:', tasks);
+      return [];
+    }
     
     return tasks.filter(task => {
       if (!task.deadline) return false;
