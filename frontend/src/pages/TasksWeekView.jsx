@@ -104,18 +104,24 @@ const TasksWeekView = () => {
   const fetchClients = async () => {
     try {
       const response = await api.get('/clients');
-      setClients(response.data);
+      const clientsData = Array.isArray(response.data) ? response.data : [];
+      setClients(clientsData);
+      console.log('👥 Načteno klientů:', clientsData.length);
     } catch (error) {
       console.error('Chyba při načítání klientů:', error);
+      setClients([]);
     }
   };
 
   const fetchUsers = async () => {
     try {
       const response = await api.get('/users');
-      setUsers(response.data);
+      const usersData = Array.isArray(response.data) ? response.data : [];
+      setUsers(usersData);
+      console.log('👤 Načteno uživatelů:', usersData.length);
     } catch (error) {
       console.error('Chyba při načítání uživatelů:', error);
+      setUsers([]);
     }
   };
 
@@ -547,7 +553,7 @@ const TasksWeekView = () => {
                     className="input-field"
                   >
                     <option value="">-- Vyberte klienta --</option>
-                    {clients.map((client) => (
+                    {Array.isArray(clients) && clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name}
                       </option>
@@ -596,7 +602,7 @@ const TasksWeekView = () => {
                     className="input-field"
                   >
                     <option value="">-- Vyberte typ --</option>
-                    {taskTypes.map((type) => (
+                    {Array.isArray(taskTypes) && taskTypes.map((type) => (
                       <option key={type.id} value={type.id}>
                         {type.icon} {type.name}
                       </option>
@@ -612,7 +618,7 @@ const TasksWeekView = () => {
                     className="input-field"
                   >
                     <option value="">-- Vyberte uživatele --</option>
-                    {users.map((usr) => (
+                    {Array.isArray(users) && users.map((usr) => (
                       <option key={usr.id} value={usr.id}>
                         {usr.name}
                       </option>
