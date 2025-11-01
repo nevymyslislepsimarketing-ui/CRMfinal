@@ -245,7 +245,7 @@ router.get('/overview/:clientId', authMiddleware, managerOnly, async (req, res) 
     const invoicesResult = await pool.query(`
       SELECT * FROM invoices 
       WHERE client_id = $1 
-      ORDER BY issue_date DESC
+      ORDER BY issued_at DESC
       LIMIT 12
     `, [clientId]);
     

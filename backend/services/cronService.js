@@ -125,26 +125,40 @@ const generateRecurringInvoices = cron.schedule('0 9 * * *', async () => {
         const dueDate = new Date(today);
         dueDate.setDate(dueDate.getDate() + (client.invoice_due_days || 14));
         
-        // Vytvořit fakturu
+        // Vygenerovat číslo faktury
+        const year = today.getFullYear();
+        const prefix = `${year}`;
+        
+        const lastInvoiceResult = await pool.query(
+          'SELECT invoice_number FROM invoices WHERE invoice_number LIKE $1 ORDER BY invoice_number DESC LIMIT 1',
+          [`${prefix}%`]
+        );
+        
+        let sequenceNumber = 1;
+        if (lastInvoiceResult.rows.length > 0) {
+          const lastNumber = lastInvoiceResult.rows[0].invoice_number;
+          const lastSequence = parseInt(lastNumber.replace(prefix, ''));
+          sequenceNumber = lastSequence + 1;
+        }
+        
+        const invoice_number = `${prefix}${String(sequenceNumber).padStart(5, '0')}`;
+        
+        // Vytvořit fakturu (používáme aktuální schéma)
         const invoiceResult = await pool.query(`
           INSERT INTO invoices 
-          (client_id, issue_date, due_date, amount, status, payment_method, items, notes)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          (invoice_number, client_id, issued_at, due_date, amount, description, paid, created_by, manager_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING *
         `, [
+          invoice_number,
           client.id,
           today,
           dueDate,
           client.monthly_recurring_amount,
-          'pending',
-          'bank_transfer',
-          JSON.stringify([{
-            description: 'Pravidelná měsíční faktura - marketingové služby',
-            quantity: 1,
-            unit_price: client.monthly_recurring_amount,
-            total: client.monthly_recurring_amount
-          }]),
-          'Automaticky vygenerovaná pravidelná faktura'
+          'Pravidelná měsíční faktura - marketingové služby',
+          false,
+          client.manager_id || null,
+          client.manager_id || null
         ]);
         
         console.log(`  ✅ Faktura vytvořena pro ${client.name} - ${client.monthly_recurring_amount} Kč`);
