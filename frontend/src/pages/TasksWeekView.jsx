@@ -34,6 +34,8 @@ const TasksWeekView = () => {
     client_id: '',
     assigned_to: '',
     task_type_id: '',
+    start_time: null,
+    end_time: null,
   });
 
   // Získat datum pro konkrétní den v týdnu (0 = pondělí, 6 = neděle)
@@ -207,6 +209,8 @@ const TasksWeekView = () => {
       client_id: '',
       assigned_to: '',
       task_type_id: '',
+      start_time: null,
+      end_time: null,
     });
     setShowModal(true);
   };
@@ -241,6 +245,8 @@ const TasksWeekView = () => {
       client_id: viewingTask.client_id || '',
       assigned_to: viewingTask.assigned_to || '',
       task_type_id: viewingTask.task_type_id || '',
+      start_time: viewingTask.start_time || null,
+      end_time: viewingTask.end_time || null,
     });
     setShowDetailModal(false);
     setShowModal(true);
