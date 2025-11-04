@@ -621,11 +621,8 @@ router.get('/:id/html', async (req, res) => {
                         <div style="margin-bottom: 5px;">
                             <strong>Číslo účtu:</strong> ${companySettings.bank_account || 'Neuvedeno'}
                         </div>
-                        <div style="margin-bottom: 5px;">
-                            <strong>Částka:</strong> ${formatCurrency(invoice.amount)}
-                        </div>
                         <div>
-                            <strong>Variabilní symbol:</strong> ${invoice.invoice_number.replace(/[^0-9]/g, '')}
+                            <strong>Částka:</strong> ${formatCurrency(invoice.amount)}
                         </div>
                     </div>
                 </div>

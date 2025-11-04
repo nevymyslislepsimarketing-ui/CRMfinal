@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { ChevronLeft, ChevronRight, Calendar, Plus, X, Edit, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, X, Edit, Trash2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Získat pondělí daného týdne
@@ -106,7 +106,8 @@ const TasksWeekView = () => {
   const fetchClients = async () => {
     try {
       const response = await api.get('/clients');
-      const clientsData = Array.isArray(response.data) ? response.data : [];
+      // Backend vrací { clients: [...] }
+      const clientsData = response.data.clients || [];
       setClients(clientsData);
       console.log('👥 Načteno klientů:', clientsData.length);
     } catch (error) {
@@ -118,7 +119,8 @@ const TasksWeekView = () => {
   const fetchUsers = async () => {
     try {
       const response = await api.get('/users');
-      const usersData = Array.isArray(response.data) ? response.data : [];
+      // Backend vrací { users: [...] }
+      const usersData = response.data.users || [];
       setUsers(usersData);
       console.log('👤 Načteno uživatelů:', usersData.length);
     } catch (error) {
@@ -685,6 +687,21 @@ const TasksWeekView = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Popis</label>
                   <p className="text-gray-600">{viewingTask.description}</p>
+                </div>
+              )}
+
+              {/* Google Drive tlačítko */}
+              {viewingTask.client_google_drive_url && (
+                <div className="pt-2">
+                  <a
+                    href={viewingTask.client_google_drive_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                  >
+                    <ExternalLink size={16} />
+                    <span>Otevřít Google Disk klienta</span>
+                  </a>
                 </div>
               )}
 
