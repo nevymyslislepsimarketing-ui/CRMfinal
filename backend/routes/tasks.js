@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
       SELECT 
         t.*,
         c.name as client_name,
-        c.google_drive_url as client_google_drive_url,
+        c.google_drive_link as client_google_drive_url,
         u.name as assigned_to_name,
         tt.name as task_type_name,
         tt.icon as task_type_icon,
