@@ -661,7 +661,10 @@ router.get('/profit-overview/:managerId', async (req, res) => {
   try {
     const { managerId } = req.params;
     
-    // Získat všechny faktury pro klienty tohoto manažera
+    // Získat všechny faktury pro tohoto manažera
+    // Zahrnuje faktury kde:
+    // 1. Klient má přiřazeného tohoto manažera (c.manager_id)
+    // 2. Faktura má přímo přiřazeného tohoto manažera (i.manager_id)
     const invoicesQuery = `
       SELECT 
         i.id,
@@ -670,8 +673,8 @@ router.get('/profit-overview/:managerId', async (req, res) => {
         i.issued_at,
         DATE_TRUNC('month', i.issued_at) as month
       FROM invoices i
-      INNER JOIN clients c ON i.client_id = c.id
-      WHERE c.manager_id = $1
+      LEFT JOIN clients c ON i.client_id = c.id
+      WHERE i.manager_id = $1 OR c.manager_id = $1
       ORDER BY i.issued_at DESC
     `;
     

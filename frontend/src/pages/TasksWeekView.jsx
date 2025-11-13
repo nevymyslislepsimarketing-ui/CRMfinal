@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { ChevronLeft, ChevronRight, Calendar, Plus, X, Edit, Trash2, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, X, Edit, Trash2, ExternalLink, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Získat pondělí daného týdne
@@ -283,6 +283,21 @@ const TasksWeekView = () => {
     }
   };
 
+  // Rychle označit jako hotovo
+  const handleQuickComplete = async (task, e) => {
+    e.stopPropagation(); // Zabránit otevření detailu
+    try {
+      await api.put(`/tasks/${task.id}`, {
+        ...task,
+        status: 'completed'
+      });
+      fetchTasks();
+    } catch (error) {
+      console.error('Chyba při označení úkolu jako hotového:', error);
+      alert('Nepodařilo se označit úkol jako hotový');
+    }
+  };
+
   // Smazat úkol
   const handleDelete = async (id) => {
     if (!window.confirm('Opravdu chcete smazat tento úkol?')) return;
@@ -440,8 +455,19 @@ const TasksWeekView = () => {
                       <div
                         key={task.id}
                         onClick={() => handleOpenDetail(task)}
-                        className="p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer bg-white"
+                        className="relative p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer bg-white"
                       >
+                        {/* Quick Complete Button */}
+                        {task.status !== 'completed' && (
+                          <button
+                            onClick={(e) => handleQuickComplete(task, e)}
+                            className="absolute top-2 right-2 p-1 text-green-600 hover:text-white hover:bg-green-600 rounded transition-all z-10"
+                            title="Označit jako hotovo"
+                          >
+                            <Check size={16} />
+                          </button>
+                        )}
+
                         {/* Task Type Icon & Name */}
                         {taskType && (
                           <div className="flex items-center space-x-1 mb-2">

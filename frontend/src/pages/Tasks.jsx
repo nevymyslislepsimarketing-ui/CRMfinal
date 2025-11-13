@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, X, Calendar, User, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Calendar, User, Filter, Check, Archive, RotateCcw } from 'lucide-react';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -15,6 +15,9 @@ const Tasks = () => {
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [showArchive, setShowArchive] = useState(false);
+  const [archiveUserFilter, setArchiveUserFilter] = useState('');
+  const [archiveDateFilter, setArchiveDateFilter] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -46,13 +49,45 @@ const Tasks = () => {
   }, []);
 
   useEffect(() => {
-    // Filtrovat úkoly podle vybraného uživatele (pouze pro manažery)
-    if (selectedUserId === '') {
-      setFilteredTasks(tasks);
+    let filtered = tasks;
+    
+    // Filtrovat podle archivu/aktivních
+    if (showArchive) {
+      filtered = filtered.filter(task => task.status === 'completed');
+      
+      // Filtrovat archiv podle uživatele
+      if (archiveUserFilter) {
+        filtered = filtered.filter(task => task.assigned_to === parseInt(archiveUserFilter));
+      }
+      
+      // Filtrovat archiv podle data
+      if (archiveDateFilter) {
+        filtered = filtered.filter(task => {
+          if (!task.deadline) return false;
+          const taskDate = new Date(task.deadline).toISOString().split('T')[0];
+          return taskDate === archiveDateFilter;
+        });
+      }
     } else {
-      setFilteredTasks(tasks.filter(task => task.assigned_to === parseInt(selectedUserId)));
+      // Zobrazit jen nekompletní úkoly
+      filtered = filtered.filter(task => task.status !== 'completed');
+      
+      // Filtrovat podle vybraného uživatele (pouze pro manažery)
+      if (selectedUserId) {
+        filtered = filtered.filter(task => task.assigned_to === parseInt(selectedUserId));
+      }
     }
-  }, [tasks, selectedUserId]);
+    
+    // Seřadit podle deadline (nejdříve nejbližší)
+    filtered.sort((a, b) => {
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
+    
+    setFilteredTasks(filtered);
+  }, [tasks, selectedUserId, showArchive, archiveUserFilter, archiveDateFilter]);
 
   const fetchTasks = async () => {
     try {
@@ -156,6 +191,19 @@ const Tasks = () => {
     }
   };
 
+  const handleQuickComplete = async (task) => {
+    try {
+      await api.put(`/tasks/${task.id}`, {
+        ...task,
+        status: 'completed'
+      });
+      fetchTasks();
+    } catch (error) {
+      console.error('Chyba při označení úkolu jako hotového:', error);
+      alert('Nepodařilo se označit úkol jako hotový');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Opravdu chcete smazat tento úkol?')) return;
 
@@ -256,48 +304,119 @@ const Tasks = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Úkoly</h1>
-        <div className="flex space-x-3">
-          <button onClick={() => setShowRecurringModal(true)} className="btn-secondary flex items-center space-x-2">
-            <Calendar size={18} />
-            <span>Opakovaný úkol</span>
-          </button>
-          <button onClick={() => handleOpenModal()} className="btn-primary flex items-center space-x-2">
-            <Plus size={18} />
-            <span>Přidat úkol</span>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-3xl font-bold text-gray-900">{showArchive ? 'Archiv úkolů' : 'Úkoly'}</h1>
+          <button
+            onClick={() => {
+              setShowArchive(!showArchive);
+              setArchiveUserFilter('');
+              setArchiveDateFilter('');
+            }}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+              showArchive 
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+            }`}
+          >
+            {showArchive ? (
+              <>
+                <RotateCcw size={18} />
+                <span>Zpět na úkoly</span>
+              </>
+            ) : (
+              <>
+                <Archive size={18} />
+                <span>Archiv</span>
+              </>
+            )}
           </button>
         </div>
+        {!showArchive && (
+          <div className="flex space-x-3">
+            <button onClick={() => setShowRecurringModal(true)} className="btn-secondary flex items-center space-x-2">
+              <Calendar size={18} />
+              <span>Opakovaný úkol</span>
+            </button>
+            <button onClick={() => handleOpenModal()} className="btn-primary flex items-center space-x-2">
+              <Plus size={18} />
+              <span>Přidat úkol</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Filtr pro manažery */}
-      {user?.role === 'manager' && (
+      {/* Filtry */}
+      {showArchive ? (
         <div className="card mb-6">
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-4">
             <Filter size={18} className="text-gray-600" />
-            <label className="text-sm font-medium text-gray-700">Filtrovat úkoly podle uživatele:</label>
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="input-field max-w-xs"
-            >
-              <option value="">Všichni uživatelé</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-            {selectedUserId && (
-              <button
-                onClick={() => setSelectedUserId('')}
-                className="text-sm text-gray-500 hover:text-gray-700"
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Uživatel:</label>
+              <select
+                value={archiveUserFilter}
+                onChange={(e) => setArchiveUserFilter(e.target.value)}
+                className="input-field"
               >
-                Zrušit filtr
+                <option value="">Všichni</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Datum deadline:</label>
+              <input
+                type="date"
+                value={archiveDateFilter}
+                onChange={(e) => setArchiveDateFilter(e.target.value)}
+                className="input-field"
+              />
+            </div>
+            {(archiveUserFilter || archiveDateFilter) && (
+              <button
+                onClick={() => {
+                  setArchiveUserFilter('');
+                  setArchiveDateFilter('');
+                }}
+                className="text-sm text-purple-600 hover:text-purple-700 underline"
+              >
+                Zrušit filtry
               </button>
             )}
           </div>
         </div>
+      ) : (
+        user?.role === 'manager' && (
+          <div className="card mb-6">
+            <div className="flex items-center space-x-3">
+              <Filter size={18} className="text-gray-600" />
+              <label className="text-sm font-medium text-gray-700">Filtrovat úkoly podle uživatele:</label>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="input-field max-w-xs"
+              >
+                <option value="">Všichni uživatelé</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+              {selectedUserId && (
+                <button
+                  onClick={() => setSelectedUserId('')}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Zrušit filtr
+                </button>
+              )}
+            </div>
+          </div>
+        )
       )}
 
       {/* Seznam úkolů */}
@@ -355,6 +474,15 @@ const Tasks = () => {
                 </div>
                 
                 <div className="flex space-x-2 ml-4">
+                  {!showArchive && task.status !== 'completed' && (
+                    <button
+                      onClick={() => handleQuickComplete(task)}
+                      className="text-green-600 hover:text-green-700 p-2 hover:bg-green-50 rounded-lg transition"
+                      title="Označit jako hotovo"
+                    >
+                      <Check size={18} />
+                    </button>
+                  )}
                   <button
                     onClick={() => handleOpenModal(task)}
                     className="text-primary-600 hover:text-primary-700"
