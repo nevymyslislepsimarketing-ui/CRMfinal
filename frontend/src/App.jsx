@@ -18,6 +18,7 @@ import Pipeline from './pages/Pipeline';
 import CalendarEnhanced from './pages/CalendarEnhanced';
 import Projects from './pages/Projects';
 import Pricing from './pages/Pricing';
+import QuotesArchive from './pages/QuotesArchive';
 import AICaptions from './pages/AICaptions';
 import GoogleDrive from './pages/GoogleDrive';
 import GoogleCallback from './components/GoogleCallback';
@@ -140,6 +141,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Pricing />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/quotes-archive"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <QuotesArchive />
                 </Layout>
               </ProtectedRoute>
             }

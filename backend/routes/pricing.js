@@ -136,9 +136,18 @@ router.get('/quotes', authMiddleware, async (req, res) => {
     const { client_id, status } = req.query;
     
     let query = `
-      SELECT q.*, c.name as client_name, u.name as created_by_name
+      SELECT q.*, 
+        c.name as client_name,
+        c.email as client_email,
+        c.phone as client_phone,
+        p.company_name as lead_company_name,
+        p.contact_person as lead_contact_person,
+        p.email as lead_email,
+        p.phone as lead_phone,
+        u.name as created_by_name
       FROM client_quotes q
       LEFT JOIN clients c ON q.client_id = c.id
+      LEFT JOIN pipeline p ON q.pipeline_id = p.id
       LEFT JOIN users u ON q.created_by = u.id
       WHERE 1=1
     `;
@@ -175,9 +184,18 @@ router.get('/quotes/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
     
     const result = await pool.query(`
-      SELECT q.*, c.name as client_name, u.name as created_by_name
+      SELECT q.*, 
+        c.name as client_name,
+        c.email as client_email,
+        c.phone as client_phone,
+        p.company_name as lead_company_name,
+        p.contact_person as lead_contact_person,
+        p.email as lead_email,
+        p.phone as lead_phone,
+        u.name as created_by_name
       FROM client_quotes q
       LEFT JOIN clients c ON q.client_id = c.id
+      LEFT JOIN pipeline p ON q.pipeline_id = p.id
       LEFT JOIN users u ON q.created_by = u.id
       WHERE q.id = $1
     `, [id]);
