@@ -325,201 +325,277 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
     
     // Vytvořit PDF dokument
     const doc = new PDFDocument({ 
-      size: 'A4', 
-      margins: { top: 50, bottom: 50, left: 50, right: 50 },
+      size: 'A4',
+      margin: 0,
+      bufferPages: true,
       info: {
-        Title: quote.quote_name,
-        Author: 'Nevymyslíš'
+        Title: quote.quote_name || 'Cenová nabídka',
+        Author: 'Nevymyslíš',
+        Subject: 'Cenová nabídka služeb',
+        Creator: 'Nevymyslíš CRM'
       }
     });
     
     // Nastavit response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="nabidka-${id}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="nabidka-${quote.quote_name?.replace(/[^a-z0-9]/gi, '-').toLowerCase() || id}.pdf"`);
     
     // Stream PDF do response
     doc.pipe(res);
     
-    // === HEADER S LOGEM A BRANDING ===
-    // Gradient header background
-    doc.rect(0, 0, 595, 150).fill('#A794E8');
+    // Helper funkce pro formátování ceny
+    const formatPrice = (price) => {
+      return new Intl.NumberFormat('cs-CZ', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(price) + ' Kč';
+    };
     
-    // Logo text (můžete nahradit obrázkem loga)
-    doc.fontSize(32)
+    // === HEADER S LOGEM A BRANDING ===
+    doc.rect(0, 0, 595.28, 120).fill('#A794E8');
+    
+    // Logo a název
+    doc.fontSize(28)
        .fillColor('#FFFFFF')
        .font('Helvetica-Bold')
-       .text('Nevymyslíš', 50, 40);
+       .text('NEVYMYSLÍŠ', 50, 35);
     
-    doc.fontSize(12)
+    doc.fontSize(11)
        .fillColor('#FFFFFF')
        .font('Helvetica')
-       .text('Lepší marketing', 50, 80);
+       .text('Lepší marketing', 50, 70);
     
     // Kontaktní info v pravém rohu
-    doc.fontSize(10)
-       .text('info@nevymyslis.cz', 400, 50, { align: 'right', width: 145 })
-       .text('+420 735 823 160', 400, 65, { align: 'right', width: 145 });
+    doc.fontSize(9)
+       .fillColor('#FFFFFF')
+       .text('info@nevymyslis.cz', 450, 40)
+       .text('+420 735 823 160', 450, 55)
+       .text('Hornická 914, Havířov', 450, 70);
     
     // === NADPIS NABÍDKY ===
+    let yPos = 150;
     doc.fillColor('#333333')
-       .fontSize(24)
+       .fontSize(20)
        .font('Helvetica-Bold')
-       .text(quote.quote_name || 'Nabídka služeb', 50, 180);
+       .text(quote.quote_name || 'Cenová nabídka', 50, yPos);
     
     // Datum vytvoření
-    doc.fontSize(10)
+    yPos += 30;
+    doc.fontSize(9)
        .fillColor('#666666')
        .font('Helvetica')
-       .text(`Vytvořeno: ${new Date(quote.created_at).toLocaleDateString('cs-CZ')}`, 50, 215);
+       .text(`Datum vytvoření: ${new Date(quote.created_at).toLocaleDateString('cs-CZ')}`, 50, yPos);
     
     // === INFO O KLIENTOVI/LEADOVI ===
-    let yPos = 250;
-    doc.fontSize(14)
-       .fillColor('#333333')
-       .font('Helvetica-Bold')
-       .text('Pro:', 50, yPos);
+    yPos += 30;
     
-    yPos += 25;
-    doc.fontSize(12)
-       .font('Helvetica')
-       .fillColor('#333333');
+    // Box pro klienta
+    doc.rect(50, yPos, 250, 80).strokeColor('#E0E0E0').stroke();
+    
+    doc.fontSize(10)
+       .fillColor('#666666')
+       .font('Helvetica-Bold')
+       .text('PRO:', 60, yPos + 10);
     
     const recipientName = quote.client_name || quote.lead_company_name || 'N/A';
     const recipientContact = quote.lead_contact_person || '';
     const recipientEmail = quote.client_email || quote.lead_email || '';
     const recipientPhone = quote.client_phone || quote.lead_phone || '';
     
-    doc.text(recipientName, 50, yPos);
-    if (recipientContact) {
-      yPos += 18;
-      doc.text(recipientContact, 50, yPos);
-    }
-    if (recipientEmail) {
-      yPos += 18;
-      doc.text(recipientEmail, 50, yPos);
-    }
-    if (recipientPhone) {
-      yPos += 18;
-      doc.text(recipientPhone, 50, yPos);
-    }
-    
-    // === TABULKA SLUŽEB ===
-    yPos += 40;
-    
-    // Tabulka header
-    doc.rect(50, yPos, 495, 30).fill('#FFD6BA');
-    
+    let clientYPos = yPos + 25;
     doc.fontSize(11)
        .fillColor('#333333')
        .font('Helvetica-Bold')
-       .text('Služba', 60, yPos + 10)
-       .text('Typ', 350, yPos + 10)
-       .text('Cena', 450, yPos + 10);
+       .text(recipientName, 60, clientYPos, { width: 230 });
     
-    yPos += 30;
+    clientYPos += 18;
+    doc.font('Helvetica').fontSize(9);
+    if (recipientContact) {
+      doc.text(recipientContact, 60, clientYPos);
+      clientYPos += 14;
+    }
+    if (recipientEmail) {
+      doc.text(recipientEmail, 60, clientYPos);
+      clientYPos += 14;
+    }
+    if (recipientPhone) {
+      doc.text(recipientPhone, 60, clientYPos);
+    }
     
-    // Služby
-    doc.font('Helvetica').fontSize(10);
+    // === TABULKA SLUŽEB ===
+    yPos += 100;
+    
+    doc.fontSize(12)
+       .fillColor('#333333')
+       .font('Helvetica-Bold')
+       .text('PŘEHLED SLUŽEB', 50, yPos);
+    
+    yPos += 25;
+    
+    // Tabulka header
+    doc.rect(50, yPos, 495, 25).fill('#FFD6BA');
+    
+    doc.fontSize(9)
+       .fillColor('#333333')
+       .font('Helvetica-Bold')
+       .text('Služba', 60, yPos + 8)
+       .text('Typ', 380, yPos + 8)
+       .text('Cena', 480, yPos + 8, { width: 55, align: 'right' });
+    
+    yPos += 25;
+    
+    // Služby - s lepším řádkováním
+    doc.font('Helvetica').fontSize(9);
     
     services.forEach((service, index) => {
-      // Kontrola, zda máme dost místa, jinak nová stránka
+      // Kontrola prostoru - ponechat místo pro footer
       if (yPos > 700) {
         doc.addPage();
         yPos = 50;
+        
+        // Opakovat header na nové stránce
+        doc.rect(50, yPos, 495, 25).fill('#FFD6BA');
+        doc.fontSize(9)
+           .fillColor('#333333')
+           .font('Helvetica-Bold')
+           .text('Služba', 60, yPos + 8)
+           .text('Typ', 380, yPos + 8)
+           .text('Cena', 480, yPos + 8, { width: 55, align: 'right' });
+        yPos += 25;
+        doc.font('Helvetica');
       }
       
-      // Alternující barvy řádků
-      if (index % 2 === 0) {
-        doc.rect(50, yPos, 495, 25).fill('#F9F9F9');
+      // Alternující pozadí
+      const rowHeight = 22;
+      if (index % 2 === 1) {
+        doc.rect(50, yPos, 495, rowHeight).fill('#F9F9F9');
       }
       
-      doc.fillColor('#333333')
-         .text(service.service_name, 60, yPos + 8, { width: 280 })
-         .text(service.price_type === 'monthly' ? 'Měsíční' : 'Jednorázová', 350, yPos + 8)
-         .text(`${service.price.toLocaleString()} Kč`, 450, yPos + 8);
+      // Obsah řádku
+      doc.fillColor('#333333');
       
-      yPos += 25;
+      // Název služby - oříznout pokud je moc dlouhý
+      const serviceName = service.service_name.length > 50 
+        ? service.service_name.substring(0, 47) + '...'
+        : service.service_name;
+      doc.text(serviceName, 60, yPos + 6, { width: 310, lineBreak: false });
+      
+      // Typ
+      doc.text(
+        service.price_type === 'monthly' ? 'Měsíční' : 'Jednorázová', 
+        380, 
+        yPos + 6
+      );
+      
+      // Cena - zarovnaná vpravo
+      doc.text(formatPrice(service.price), 435, yPos + 6, { width: 100, align: 'right' });
+      
+      yPos += rowHeight;
     });
     
-    // Oddělovač
-    yPos += 10;
-    doc.moveTo(50, yPos).lineTo(545, yPos).stroke('#CCCCCC');
+    // Oddělovač před souhrnem
+    yPos += 15;
+    doc.moveTo(50, yPos).lineTo(545, yPos).strokeColor('#CCCCCC').lineWidth(1).stroke();
     yPos += 20;
     
-    // === CELKOVÁ CENA ===
+    // === SOUHRN CEN ===
+    // Pravý panel pro ceny
+    const priceBoxX = 320;
+    const priceBoxWidth = 225;
+    
     if (quote.monthly_total > 0) {
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
+      doc.fontSize(10)
+         .font('Helvetica')
+         .fillColor('#666666')
+         .text('Měsíční náklady:', priceBoxX, yPos);
+      
+      doc.font('Helvetica-Bold')
          .fillColor('#A794E8')
-         .text('Měsíční náklady celkem:', 320, yPos)
-         .text(`${quote.monthly_total.toLocaleString()} Kč`, 450, yPos);
+         .fontSize(12)
+         .text(formatPrice(quote.monthly_total), priceBoxX + 120, yPos - 1, { width: 105, align: 'right' });
+      
       yPos += 25;
     }
     
     if (quote.one_time_total > 0) {
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
+      doc.fontSize(10)
+         .font('Helvetica')
+         .fillColor('#666666')
+         .text('Jednorázové náklady:', priceBoxX, yPos);
+      
+      doc.font('Helvetica-Bold')
          .fillColor('#FFBD98')
-         .text('Jednorázové náklady:', 320, yPos)
-         .text(`${quote.one_time_total.toLocaleString()} Kč`, 450, yPos);
+         .fontSize(12)
+         .text(formatPrice(quote.one_time_total), priceBoxX + 120, yPos - 1, { width: 105, align: 'right' });
+      
       yPos += 25;
     }
     
-    // Celková investice
-    const totalInvestment = quote.monthly_total + quote.one_time_total;
-    yPos += 10;
-    doc.fontSize(14)
-       .font('Helvetica-Bold')
-       .fillColor('#333333')
-       .text('Celková počáteční investice:', 320, yPos)
-       .text(`${totalInvestment.toLocaleString()} Kč`, 450, yPos);
-    
-    // === POZNÁMKY / ÚPRAVY ===
-    if (quote.custom_adjustments) {
+    // Celková investice - zvýrazněná
+    if (quote.monthly_total > 0 || quote.one_time_total > 0) {
+      yPos += 5;
+      doc.rect(priceBoxX, yPos - 5, priceBoxWidth, 35).fill('#F5F5F5');
+      
+      doc.fontSize(11)
+         .font('Helvetica-Bold')
+         .fillColor('#333333')
+         .text('Celková investice:', priceBoxX + 10, yPos + 8);
+      
+      const totalInvestment = quote.monthly_total + quote.one_time_total;
+      doc.fontSize(14)
+         .fillColor('#333333')
+         .text(formatPrice(totalInvestment), priceBoxX + 110, yPos + 6, { width: 105, align: 'right' });
+      
       yPos += 40;
+    }
+    
+    // === POZNÁMKY ===
+    if (quote.custom_adjustments) {
+      yPos += 25;
       
       if (yPos > 650) {
         doc.addPage();
         yPos = 50;
       }
       
-      doc.fontSize(12)
+      doc.fontSize(10)
          .font('Helvetica-Bold')
          .fillColor('#333333')
-         .text('Poznámky:', 50, yPos);
+         .text('POZNÁMKY:', 50, yPos);
       
-      yPos += 20;
-      doc.fontSize(10)
+      yPos += 18;
+      doc.fontSize(9)
          .font('Helvetica')
          .fillColor('#666666')
-         .text(quote.custom_adjustments, 50, yPos, { width: 495 });
+         .text(quote.custom_adjustments, 50, yPos, { width: 495, align: 'left' });
     }
     
-    // === FOOTER ===
-    const pageCount = doc.bufferedPageRange().count;
-    for (let i = 0; i < pageCount; i++) {
+    // === FOOTER NA VŠECH STRÁNKÁCH ===
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
       
       // Footer čára
-      doc.moveTo(50, 780).lineTo(545, 780).stroke('#CCCCCC');
+      doc.moveTo(50, 800).lineTo(545, 800).strokeColor('#E0E0E0').lineWidth(1).stroke();
       
       // Footer text
-      doc.fontSize(9)
+      doc.fontSize(8)
          .fillColor('#999999')
+         .font('Helvetica')
          .text(
-           'Nevymyslíš | Hornická 914, Havířov 736 01 | IČO: 12345678 | info@nevymyslis.cz | +420 735 823 160',
+           'Nevymyslíš | Hornická 914, Havířov 736 01 | IČO: 12345678',
            50,
-           790,
+           810,
            { align: 'center', width: 495 }
          );
       
-      // Číslo stránky
-      doc.text(
-         `Strana ${i + 1} z ${pageCount}`,
-         50,
-         805,
-         { align: 'center', width: 495 }
-       );
+      doc.fontSize(7)
+         .text(
+           `Strana ${i + 1} z ${range.count}`,
+           0,
+           825,
+           { align: 'center', width: 595.28 }
+         );
     }
     
     // Dokončit PDF
