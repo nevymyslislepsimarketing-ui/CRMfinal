@@ -133,9 +133,11 @@ const Pipeline = () => {
     try {
       await api.delete(`/pipeline/${id}`);
       fetchLeads();
+      alert('Lead byl úspěšně smazán');
     } catch (error) {
       console.error('Chyba při mazání leadu:', error);
-      alert('Nepodařilo se smazat lead');
+      const errorMsg = error.response?.data?.error || error.message || 'Nepodařilo se smazat lead';
+      alert(`Chyba při mazání: ${errorMsg}`);
     }
   };
 
@@ -206,21 +208,29 @@ const Pipeline = () => {
             </div>
             <div className="space-y-3">
               {groupedLeads[stage.value]?.map(lead => (
-                <div key={lead.id} className="card p-4 hover:shadow-xl cursor-pointer">
+                <div key={lead.id} className="card p-4 hover:shadow-xl">
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-semibold text-sm text-gray-900">{lead.company_name}</h4>
-                    <div className="flex space-x-1">
+                    <div className="flex space-x-2">
                       <button
-                        onClick={() => handleOpenModal(lead)}
-                        className="text-primary-600 hover:text-primary-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenModal(lead);
+                        }}
+                        className="p-1.5 rounded-md text-primary-600 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                        title="Upravit lead"
                       >
-                        <Edit size={14} />
+                        <Edit size={16} />
                       </button>
                       <button
-                        onClick={() => handleDelete(lead.id)}
-                        className="text-red-600 hover:text-red-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(lead.id);
+                        }}
+                        className="p-1.5 rounded-md text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                        title="Smazat lead"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
