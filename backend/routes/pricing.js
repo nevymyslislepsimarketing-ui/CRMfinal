@@ -345,10 +345,11 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
     
     // Helper funkce pro formátování ceny
     const formatPrice = (price) => {
+      const numPrice = parseFloat(price) || 0;
       return new Intl.NumberFormat('cs-CZ', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
-      }).format(price) + ' Kč';
+      }).format(numPrice) + ' Kc';
     };
     
     // === HEADER S LOGEM A BRANDING ===
@@ -358,33 +359,33 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
     doc.fontSize(28)
        .fillColor('#FFFFFF')
        .font('Helvetica-Bold')
-       .text('NEVYMYSLÍŠ', 50, 35);
+       .text('NEVYMYSLIS', 50, 35);
     
     doc.fontSize(11)
        .fillColor('#FFFFFF')
        .font('Helvetica')
-       .text('Lepší marketing', 50, 70);
+       .text('Lepsi marketing', 50, 70);
     
     // Kontaktní info v pravém rohu
     doc.fontSize(9)
        .fillColor('#FFFFFF')
        .text('info@nevymyslis.cz', 450, 40)
        .text('+420 735 823 160', 450, 55)
-       .text('Hornická 914, Havířov', 450, 70);
+       .text('Hornicka 914, Havirov', 450, 70);
     
     // === NADPIS NABÍDKY ===
     let yPos = 150;
     doc.fillColor('#333333')
        .fontSize(20)
        .font('Helvetica-Bold')
-       .text(quote.quote_name || 'Cenová nabídka', 50, yPos);
+       .text(quote.quote_name || 'Cenova nabidka', 50, yPos);
     
     // Datum vytvoření
     yPos += 30;
     doc.fontSize(9)
        .fillColor('#666666')
        .font('Helvetica')
-       .text(`Datum vytvoření: ${new Date(quote.created_at).toLocaleDateString('cs-CZ')}`, 50, yPos);
+       .text(`Datum vytvoreni: ${new Date(quote.created_at).toLocaleDateString('cs-CZ')}`, 50, yPos);
     
     // === INFO O KLIENTOVI/LEADOVI ===
     yPos += 30;
@@ -428,7 +429,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
     doc.fontSize(12)
        .fillColor('#333333')
        .font('Helvetica-Bold')
-       .text('PŘEHLED SLUŽEB', 50, yPos);
+       .text('PREHLED SLUZEB', 50, yPos);
     
     yPos += 25;
     
@@ -438,7 +439,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
     doc.fontSize(9)
        .fillColor('#333333')
        .font('Helvetica-Bold')
-       .text('Služba', 60, yPos + 8)
+       .text('Sluzba', 60, yPos + 8)
        .text('Typ', 380, yPos + 8)
        .text('Cena', 480, yPos + 8, { width: 55, align: 'right' });
     
@@ -458,7 +459,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
         doc.fontSize(9)
            .fillColor('#333333')
            .font('Helvetica-Bold')
-           .text('Služba', 60, yPos + 8)
+           .text('Sluzba', 60, yPos + 8)
            .text('Typ', 380, yPos + 8)
            .text('Cena', 480, yPos + 8, { width: 55, align: 'right' });
         yPos += 25;
@@ -482,7 +483,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
       
       // Typ
       doc.text(
-        service.price_type === 'monthly' ? 'Měsíční' : 'Jednorázová', 
+        service.price_type === 'monthly' ? 'Mesicni' : 'Jednorazova', 
         380, 
         yPos + 6
       );
@@ -507,7 +508,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
       doc.fontSize(10)
          .font('Helvetica')
          .fillColor('#666666')
-         .text('Měsíční náklady:', priceBoxX, yPos);
+         .text('Mesicni naklady:', priceBoxX, yPos);
       
       doc.font('Helvetica-Bold')
          .fillColor('#A794E8')
@@ -521,7 +522,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
       doc.fontSize(10)
          .font('Helvetica')
          .fillColor('#666666')
-         .text('Jednorázové náklady:', priceBoxX, yPos);
+         .text('Jednorazove naklady:', priceBoxX, yPos);
       
       doc.font('Helvetica-Bold')
          .fillColor('#FFBD98')
@@ -539,7 +540,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
       doc.fontSize(11)
          .font('Helvetica-Bold')
          .fillColor('#333333')
-         .text('Celková investice:', priceBoxX + 10, yPos + 8);
+         .text('Celkova investice:', priceBoxX + 10, yPos + 8);
       
       const totalInvestment = quote.monthly_total + quote.one_time_total;
       doc.fontSize(14)
@@ -561,7 +562,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
       doc.fontSize(10)
          .font('Helvetica-Bold')
          .fillColor('#333333')
-         .text('POZNÁMKY:', 50, yPos);
+         .text('POZNAMKY:', 50, yPos);
       
       yPos += 18;
       doc.fontSize(9)
@@ -583,7 +584,7 @@ router.get('/quotes/:id/pdf', authMiddleware, async (req, res) => {
          .fillColor('#999999')
          .font('Helvetica')
          .text(
-           'Nevymyslíš | Hornická 914, Havířov 736 01 | IČO: 12345678',
+           'Nevymyslis | Hornicka 914, Havirov 736 01 | ICO: 12345678',
            50,
            810,
            { align: 'center', width: 495 }
