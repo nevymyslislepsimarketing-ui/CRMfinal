@@ -136,8 +136,19 @@ const Pipeline = () => {
       alert('Lead byl úspěšně smazán');
     } catch (error) {
       console.error('Chyba při mazání leadu:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Nepodařilo se smazat lead';
-      alert(`Chyba při mazání: ${errorMsg}`);
+      
+      if (error.response?.status === 400) {
+        // Lead má navázané nabídky
+        const message = error.response?.data?.message || 
+          'Tento lead má vytvořené cenové nabídky. Nejprve je musíte smazat nebo upravit v sekci Archiv nabídek.';
+        
+        if (window.confirm(`${message}\n\nChcete přejít do Archivu nabídek?`)) {
+          window.location.href = '/quotes-archive';
+        }
+      } else {
+        const errorMsg = error.response?.data?.error || error.message || 'Nepodařilo se smazat lead';
+        alert(`Chyba při mazání: ${errorMsg}`);
+      }
     }
   };
 

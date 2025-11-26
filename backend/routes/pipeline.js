@@ -83,6 +83,19 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    // Zkontrolovat, zda lead nemá navázané nabídky
+    const quotesCheck = await pool.query(
+      'SELECT COUNT(*) as count FROM client_quotes WHERE pipeline_id = $1',
+      [id]
+    );
+    
+    if (parseInt(quotesCheck.rows[0].count) > 0) {
+      return res.status(400).json({ 
+        error: 'Nelze smazat lead s navázanými nabídkami',
+        message: 'Tento lead má vytvořené cenové nabídky. Nejprve je musíte smazat nebo upravit v sekci Archiv nabídek.'
+      });
+    }
+    
     const result = await pool.query('DELETE FROM pipeline WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Lead nenalezen' });
@@ -90,7 +103,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Lead úspěšně smazán' });
   } catch (error) {
     console.error('Chyba při mazání leadu:', error);
-    res.status(500).json({ error: 'Chyba serveru' });
+    res.status(500).json({ error: 'Chyba serveru', details: error.message });
   }
 });
 
