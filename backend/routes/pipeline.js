@@ -61,7 +61,7 @@ router.post('/', async (req, res) => {
 });
 
 // Aktualizovat lead
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { company_name, contact_person, email, phone, stage, value, probability, source, notes, next_action, next_action_date, assigned_to } = req.body;
   try {
@@ -80,7 +80,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // Smazat lead
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query('DELETE FROM pipeline WHERE id = $1 RETURNING *', [id]);
@@ -95,7 +95,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // Konvertovat lead na klienta
-router.post('/:id/convert', authMiddleware, async (req, res) => {
+router.post('/:id/convert', async (req, res) => {
   const { id } = req.params;
   try {
     const leadResult = await pool.query('SELECT * FROM pipeline WHERE id = $1', [id]);
