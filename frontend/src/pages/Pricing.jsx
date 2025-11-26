@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Check, Save, X, Edit2 } from 'lucide-react';
+import { Check, Save, X, Edit2, Download, UserPlus } from 'lucide-react';
 
 const Pricing = () => {
   const [services, setServices] = useState([]);
@@ -13,6 +13,14 @@ const Pricing = () => {
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState([]);
   const [applyToClient, setApplyToClient] = useState(true);
+  const [isNewLead, setIsNewLead] = useState(false);
+  const [leadData, setLeadData] = useState({
+    company_name: '',
+    contact_person: '',
+    email: '',
+    phone: '',
+    notes: ''
+  });
 
   useEffect(() => {
     fetchServices();
@@ -58,12 +66,13 @@ const Pricing = () => {
   };
 
   const categoryLabels = {
-    social_media: '📱 Sociální sítě - Balíčky',
-    social_media_extension: '➕ Rozšíření platforem',
-    ads: '🎯 Reklamy',
-    creative: '🎨 Kreativní služby',
-    web: '🌐 Weby',
-    maintenance: '🔧 Údržba'
+    creative_visual: '🎨 Kreativní a vizuální služby',
+    copywriting: '✍️ Copywriting',
+    ads_management: '📊 Správa reklamních kampaní',
+    marketing_strategy: '🎯 Marketingové strategie',
+    graphics: '🖼️ Grafické práce',
+    filming: '🎬 Natáčení a focení',
+    web: '🌐 Webové stránky a systémy'
   };
 
   const handleServiceToggle = (service) => {
@@ -101,8 +110,14 @@ const Pricing = () => {
   };
 
   const handleSaveQuote = async () => {
-    if (!selectedClient) {
-      alert('Vyberte klienta');
+    // Validace
+    if (!selectedClient && !isNewLead) {
+      alert('Vyberte klienta nebo vytvořte nový lead');
+      return;
+    }
+
+    if (isNewLead && !leadData.company_name) {
+      alert('Vyplňte název firmy pro nový lead');
       return;
     }
 
@@ -112,30 +127,70 @@ const Pricing = () => {
     }
 
     try {
-      await api.post('/pricing/quotes', {
-        client_id: selectedClient,
+      const response = await api.post('/pricing/quotes', {
+        client_id: selectedClient || null,
+        lead_data: isNewLead ? leadData : null,
+        create_lead: isNewLead,
         quote_name: quoteName || 'Nabídka služeb',
         services: selectedServices,
         custom_adjustments: customAdjustments,
-        apply_to_client: applyToClient
+        apply_to_client: applyToClient && !isNewLead
       });
 
-      const msg = applyToClient 
-        ? 'Nabídka byla uložena a aplikována na klienta (pravidelná fakturace nastavena)'
-        : 'Nabídka byla uložena (bez nastavení pravidelné fakturace)';
+      let msg = '';
+      if (isNewLead) {
+        msg = 'Nabídka byla vytvořena a uložena do pipeline jako nový lead!';
+      } else if (applyToClient) {
+        msg = 'Nabídka byla uložena a aplikována na klienta (pravidelná fakturace nastavena)';
+      } else {
+        msg = 'Nabídka byla uložena (bez nastavení pravidelné fakturace)';
+      }
       
       alert(msg);
       
-      // Refresh nabídek
-      fetchQuotes(selectedClient);
+      // Refresh nabídek pokud máme klienta
+      if (selectedClient) {
+        fetchQuotes(selectedClient);
+      }
       
-      // Reset pouze formulář
+      // Reset formulář
       setSelectedServices([]);
       setQuoteName('');
       setCustomAdjustments('');
+      if (isNewLead) {
+        setLeadData({
+          company_name: '',
+          contact_person: '',
+          email: '',
+          phone: '',
+          notes: ''
+        });
+        setIsNewLead(false);
+      }
     } catch (error) {
       console.error('Chyba při ukládání nabídky:', error);
-      alert('Nepodařilo se uložit nabídku');
+      alert('Nepodařilo se uložit nabídku: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleDownloadPDF = async (quoteId) => {
+    try {
+      const response = await api.get(`/pricing/quotes/${quoteId}/pdf`, {
+        responseType: 'blob'
+      });
+      
+      // Vytvořit odkaz na stažení
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `nabidka-${quoteId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Chyba při stahování PDF:', error);
+      alert('Nepodařilo se stáhnout PDF');
     }
   };
 
@@ -214,19 +269,101 @@ const Pricing = () => {
           <div className="card sticky top-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Shrnutí nabídky</h3>
 
-            {/* Client Selection */}
+            {/* Toggle: Existující klient vs Nový lead */}
             <div className="mb-4">
-              <label className="label">Klient *</label>
-              <select
-                value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
-                className="input-field"
-              >
-                <option value="">-- Vyberte klienta --</option>
-                {clients.map(client => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
-                ))}
-              </select>
+              <div className="flex items-center space-x-4 mb-3">
+                <button
+                  onClick={() => setIsNewLead(false)}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+                    !isNewLead
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Existující klient
+                </button>
+                <button
+                  onClick={() => setIsNewLead(true)}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition flex items-center justify-center space-x-2 ${
+                    isNewLead
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <UserPlus size={16} />
+                  <span>Nový lead</span>
+                </button>
+              </div>
+
+              {!isNewLead ? (
+                <div>
+                  <label className="label">Klient *</label>
+                  <select
+                    value={selectedClient}
+                    onChange={(e) => setSelectedClient(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">-- Vyberte klienta --</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="label">Název firmy *</label>
+                    <input
+                      type="text"
+                      value={leadData.company_name}
+                      onChange={(e) => setLeadData({...leadData, company_name: e.target.value})}
+                      className="input-field"
+                      placeholder="Název firmy"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Kontaktní osoba</label>
+                    <input
+                      type="text"
+                      value={leadData.contact_person}
+                      onChange={(e) => setLeadData({...leadData, contact_person: e.target.value})}
+                      className="input-field"
+                      placeholder="Jméno kontaktní osoby"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Email</label>
+                    <input
+                      type="email"
+                      value={leadData.email}
+                      onChange={(e) => setLeadData({...leadData, email: e.target.value})}
+                      className="input-field"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Telefon</label>
+                    <input
+                      type="tel"
+                      value={leadData.phone}
+                      onChange={(e) => setLeadData({...leadData, phone: e.target.value})}
+                      className="input-field"
+                      placeholder="+420 XXX XXX XXX"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Poznámky</label>
+                    <textarea
+                      value={leadData.notes}
+                      onChange={(e) => setLeadData({...leadData, notes: e.target.value})}
+                      className="input-field"
+                      rows={2}
+                      placeholder="Poznámky k leadu..."
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quote Name */}
@@ -314,32 +451,34 @@ const Pricing = () => {
               </div>
             </div>
 
-            {/* Checkbox - Aplikovat na klienta */}
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              <label className="flex items-start space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={applyToClient}
-                  onChange={(e) => setApplyToClient(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Aplikovat jako pravidelnou fakturaci</p>
-                  <p className="text-xs text-gray-500">
-                    Pokud zaškrtnete, měsíční částka se nastaví u klienta jako pravidelná faktura
-                  </p>
-                </div>
-              </label>
-            </div>
+            {/* Checkbox - Aplikovat na klienta - jen pokud není nový lead */}
+            {!isNewLead && (
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <label className="flex items-start space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={applyToClient}
+                    onChange={(e) => setApplyToClient(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Aplikovat jako pravidelnou fakturaci</p>
+                    <p className="text-xs text-gray-500">
+                      Pokud zaškrtnete, měsíční částka se nastaví u klienta jako pravidelná faktura
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {/* Save Button */}
             <button
               onClick={handleSaveQuote}
-              disabled={!selectedClient || selectedServices.length === 0}
+              disabled={(!selectedClient && !isNewLead) || (isNewLead && !leadData.company_name) || selectedServices.length === 0}
               className="btn-primary w-full mt-4 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              <span>Uložit nabídku</span>
+              <span>{isNewLead ? 'Vytvořit lead a nabídku' : 'Uložit nabídku'}</span>
             </button>
           </div>
         </div>
@@ -363,16 +502,26 @@ const Pricing = () => {
               return (
                 <div key={quote.id} className="card">
                   <div className="flex items-start justify-between mb-3">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">{quote.quote_name}</h3>
                       <p className="text-sm text-gray-600">
                         Vytvořeno: {new Date(quote.created_at).toLocaleDateString('cs-CZ')} 
                         {quote.created_by_name && ` • ${quote.created_by_name}`}
                       </p>
                     </div>
-                    {index === 0 && (
-                      <span className="badge badge-success">Nejnovější</span>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      {index === 0 && (
+                        <span className="badge badge-success">Nejnovější</span>
+                      )}
+                      <button
+                        onClick={() => handleDownloadPDF(quote.id)}
+                        className="btn-secondary flex items-center space-x-2 text-sm"
+                        title="Stáhnout PDF"
+                      >
+                        <Download size={16} />
+                        <span>PDF</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-3">

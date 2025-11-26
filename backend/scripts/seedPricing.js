@@ -9,176 +9,150 @@ const pool = new Pool({
 });
 
 const pricingData = [
-  // SOCIÁLNÍ SÍTĚ - Balíčky
+  // ====== PRAVIDELNÉ SLUŽBY (MĚSÍČNÍ SPOLUPRÁCE) ======
+  
+  // 1. KREATIVNÍ A VIZUÁLNÍ SLUŽBY
   {
-    category: 'social_media',
-    service_name: 'Balíček BASIC',
-    description: '3 videa + 3 grafické příspěvky měsíčně, content plán, základní úprava fotek, odpovědi do 48h, 1x měsíční konzultace',
+    category: 'creative_visual',
+    service_name: 'Kreativní a vizuální služby - Basic',
+    description: 'Základní balíček pro menší firmy: návrh konceptu, pravidelné focení/natáčení, plánování, Reels/TikTok videa, monitoring',
+    base_price: 7000,
+    price_type: 'monthly',
+    is_package: true,
+    package_items: JSON.stringify({
+      concept: true,
+      shooting: 'regular',
+      planning: true,
+      reels_tiktok: true,
+      monitoring: true,
+      brand_recommendations: true
+    })
+  },
+  {
+    category: 'creative_visual',
+    service_name: 'Kreativní a vizuální služby - Premium',
+    description: 'Komplexnější obsah s vyšší frekvencí: návrh konceptu, pravidelné focení/natáčení, plánování, Reels/TikTok videa, monitoring, brand budování',
+    base_price: 12000,
+    price_type: 'monthly',
+    is_package: true,
+    package_items: JSON.stringify({
+      concept: true,
+      shooting: 'frequent',
+      planning: true,
+      reels_tiktok: true,
+      monitoring: true,
+      brand_building: true,
+      brand_recommendations: true
+    })
+  },
+
+  // 2. COPYWRITINGOVÉ SLUŽBY
+  {
+    category: 'copywriting',
+    service_name: 'Copywritingové služby',
+    description: 'Tvorba textového obsahu pro LinkedIn, firemní blog, Facebook: hodnotné články, storytelling, SEO optimalizace, návrh stylu komunikace',
+    base_price: 4000,
+    price_type: 'monthly',
+    is_package: false
+  },
+
+  // 3. SPRÁVA REKLAMNÍCH KAMPANÍ
+  {
+    category: 'ads_management',
+    service_name: 'Správa reklamních kampaní',
+    description: 'Kompletní správa reklam na Meta (FB+IG), Google Ads a TikTok Ads: nastavení účtů, tvorba setů a vizuálů, optimalizace, analytika, A/B testování',
     base_price: 5000,
     price_type: 'monthly',
-    is_package: true,
-    package_items: JSON.stringify({
-      videos: 3,
-      graphics: 3,
-      content_plan: true,
-      photo_editing: 'basic',
-      response_time: '48h',
-      consultations: 1
-    })
+    is_package: false
   },
+
+  // 4. MARKETINGOVÉ STRATEGIE A KONZULTACE
   {
-    category: 'social_media',
-    service_name: 'Balíček STANDARD',
-    description: '5 videí + 5 grafických příspěvků měsíčně, obsahový plán, marketingová strategie, reporting, aktivní komunikace',
-    base_price: 10000,
+    category: 'marketing_strategy',
+    service_name: 'Marketingové strategie - Měsíční',
+    description: 'Komplexní strategické řízení marketingu: brand manuál, hodnotová strategie, kontrola dodržování, školení a mentoring, strategické roadmapy',
+    base_price: 5500,
     price_type: 'monthly',
-    is_package: true,
-    package_items: JSON.stringify({
-      videos: 5,
-      graphics: 5,
-      content_plan: true,
-      strategy: true,
-      reporting: true,
-      communication: 'active'
-    })
+    is_package: false
   },
   {
-    category: 'social_media',
-    service_name: 'Balíček PREMIUM',
-    description: '8 videí + 8 grafických příspěvků měsíčně, obsahový plán, strategie, reporting, aktivní komunikace, denní stories',
+    category: 'marketing_strategy',
+    service_name: 'Marketingové strategie - Úvodní balík',
+    description: 'Jednorázový úvodní balík pro nastavení strategie: brand manuál, vizuální identita, mise/vize/hodnoty, positioning',
     base_price: 15000,
-    price_type: 'monthly',
-    is_package: true,
-    package_items: JSON.stringify({
-      videos: 8,
-      graphics: 8,
-      content_plan: true,
-      strategy: true,
-      reporting: true,
-      communication: 'active',
-      daily_stories: true
-    })
+    price_type: 'one_time',
+    is_package: false
   },
 
-  // SOCIÁLNÍ SÍTĚ - Rozšíření
+  // ====== JEDNORÁZOVÉ SLUŽBY ======
+  
+  // 1. GRAFICKÉ PRÁCE A VIZUÁLNÍ IDENTITA
   {
-    category: 'social_media_extension',
-    service_name: 'LinkedIn - příspěvky',
-    description: 'Rozšíření správy na LinkedIn',
-    base_price: 1500,
-    price_type: 'monthly',
-    is_package: false
-  },
-  {
-    category: 'social_media_extension',
-    service_name: 'LinkedIn - příspěvky a náborový obsah',
-    description: 'Kompletní správa LinkedIn včetně náborového obsahu',
-    base_price: 2500,
-    price_type: 'monthly',
-    is_package: false
-  },
-  {
-    category: 'social_media_extension',
-    service_name: 'TikTok - videa',
-    description: 'Tvorba a správa TikTok videí',
+    category: 'graphics',
+    service_name: 'Grafické práce',
+    description: 'Bannery, plakáty, billboardy, vizitky, letáky, šablony příspěvků, loga, redesign, firemní materiály',
     base_price: 1000,
-    price_type: 'monthly',
+    price_type: 'one_time',
     is_package: false
   },
   {
-    category: 'social_media_extension',
-    service_name: 'YouTube - videa',
-    description: 'Tvorba a správa YouTube videí',
+    category: 'graphics',
+    service_name: 'Vizuální identita',
+    description: 'Logo + varianty, barevná paleta, typografie, pravidla pro sociální sítě a tisk, mini brand manuál nebo kompletní brand book',
+    base_price: 15000,
+    price_type: 'one_time',
+    is_package: false
+  },
+
+  // 2. NATÁČENÍ A FOCENÍ
+  {
+    category: 'filming',
+    service_name: 'Budget Friendly (iPhone 17 Pro)',
+    description: 'Rychlé a cenově dostupné natáčení: krátká videa, Reels/TikTok, fotky, vhodné pro menší firmy. Zahrnuje střih, barvy, hudbu a základní edit',
     base_price: 1000,
-    price_type: 'monthly',
-    is_package: false
-  },
-
-  // REKLAMY
-  {
-    category: 'ads',
-    service_name: 'Správa reklam (Meta, TikTok)',
-    description: 'Placená reklama na sociálních sítích, cena dle rozsahu kampaně',
-    base_price: 2000,
-    price_type: 'monthly',
-    is_package: false
-  },
-
-  // KREATIVNÍ SLUŽBY
-  {
-    category: 'creative',
-    service_name: 'Tvorba grafiky',
-    description: 'Grafické návrhy a vizuály',
-    base_price: 500,
     price_type: 'one_time',
     is_package: false
   },
   {
-    category: 'creative',
-    service_name: 'Focení půldenní',
-    description: 'Produktové fotografie, cca 4 hodiny',
-    base_price: 1500,
-    price_type: 'one_time',
-    is_package: false
-  },
-  {
-    category: 'creative',
-    service_name: 'Focení celodenní',
-    description: 'Produktové fotografie, cca 8 hodin',
-    base_price: 2500,
+    category: 'filming',
+    service_name: 'Reprezentativní filmová produkce',
+    description: 'Profesionální filmové vybavení (kamera, světla, zvuk): firemní videa, reklamy, eventy, produktová videa. Profesionální postprodukce, color grading, scénář, režie',
+    base_price: 3000,
     price_type: 'one_time',
     is_package: false
   },
 
-  // WEBY
+  // 3. WEBOVÉ STRÁNKY A SYSTÉMY
   {
     category: 'web',
     service_name: 'Jednostránkový web',
-    description: 'Moderní responzivní web ideální pro prezentaci služeb',
+    description: 'Moderní design, rychlost, základní SEO, responzivita a formuláře',
     base_price: 10000,
     price_type: 'one_time',
     is_package: false
   },
   {
     category: 'web',
-    service_name: 'Vícestránkový web',
-    description: 'Komplexnější webové řešení pro firmy a projekty',
+    service_name: 'Multipage web',
+    description: 'Vícestránkové weby, blog, portfolio, rezervace, pokročilá SEO optimalizace',
     base_price: 15000,
     price_type: 'one_time',
     is_package: false
   },
   {
     category: 'web',
-    service_name: 'Kompletní e-shop',
-    description: 'E-shop na míru včetně produktů, platební brány a analytics',
-    base_price: 20000,
-    price_type: 'one_time',
-    is_package: false
-  },
-
-  // ÚDRŽBA
-  {
-    category: 'maintenance',
-    service_name: 'Jednorázová úprava webu',
-    description: 'Jednorázové úpravy stávajícího webu',
-    base_price: 2000,
+    service_name: 'E-shop',
+    description: 'Produktové kategorie, platební brány, doprava, napojení na sklad',
+    base_price: 25000,
     price_type: 'one_time',
     is_package: false
   },
   {
-    category: 'maintenance',
-    service_name: 'Pravidelné přidávání obsahu',
-    description: 'Měsíční aktualizace obsahu na webu',
-    base_price: 2500,
-    price_type: 'monthly',
-    is_package: false
-  },
-  {
-    category: 'maintenance',
-    service_name: 'Správa e-shopu',
-    description: 'Pravidelná správa a údržba e-shopu',
-    base_price: 5000,
-    price_type: 'monthly',
+    category: 'web',
+    service_name: 'CRM systémy',
+    description: 'Interní nástroje pro firmy: dashboardy, databáze, automatizace procesů',
+    base_price: 50000,
+    price_type: 'one_time',
     is_package: false
   }
 ];
