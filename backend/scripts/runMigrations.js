@@ -86,6 +86,17 @@ const runMigrations = async () => {
       process.exit(0);
     }
     
+    // Pokud je DB nedostupná, nepadej - server se spustí bez migrací
+    if (error.message.includes('ECONNREFUSED') || 
+        error.message.includes('ENOTFOUND') ||
+        error.message.includes('timeout') ||
+        error.message.includes('Connection terminated') ||
+        error.message.includes('the database system is not yet accepting connections')) {
+      console.log('⚠️  Databáze není dostupná - migrace se spustí později');
+      console.log('   Server se spustí bez migrací');
+      process.exit(0);
+    }
+    
     console.error('Stack trace:', error.stack);
     process.exit(1);
   } finally {

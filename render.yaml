@@ -6,7 +6,7 @@ services:
     region: frankfurt  # Nebo oregon, singapore podle preferencí
     plan: free
     buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
+    startCommand: cd backend && node scripts/runMigrations.js; npm start
     envVars:
       - key: NODE_ENV
         value: production

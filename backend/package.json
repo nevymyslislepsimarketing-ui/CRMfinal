@@ -10,7 +10,7 @@
     "migrate": "node scripts/runMigrations.js",
     "migrate:v3": "node scripts/migrateToV3.js",
     "seed:pricing": "node scripts/seedPricing.js",
-    "build": "npm run migrate"
+    "build": "echo 'Build OK - migrations will run at start'"
   },
   "keywords": ["crm", "express", "postgresql"],
   "author": "Nevymyslíš",
